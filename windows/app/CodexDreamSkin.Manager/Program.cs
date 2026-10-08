@@ -10,8 +10,29 @@ internal static class Program
   [STAThread]
   private static int Main(string[] args)
   {
+    // Build validation must never unpack into the user's active runtime.
+    if (args.Contains("--self-test", StringComparer.OrdinalIgnoreCase))
+    {
+      var testRoot = Path.Combine(Path.GetTempPath(), "codex-manager-self-test-" + Guid.NewGuid().ToString("N"));
+      try
+      {
+        var testRuntime = new RuntimeProvisioner(testRoot);
+        testRuntime.EnsureExtracted();
+        return SelfTest.Run(testRuntime);
+      }
+      catch (Exception exception)
+      {
+        Console.Error.WriteLine(exception);
+        return 1;
+      }
+      finally
+      {
+        if (Directory.Exists(testRoot)) Directory.Delete(testRoot, recursive: true);
+      }
+    }
+
     using var mutex = new Mutex(true, MutexName, out var createdNew);
-    if (!createdNew && !args.Contains("--self-test", StringComparer.OrdinalIgnoreCase))
+    if (!createdNew)
     {
       MessageBox.Show(
         $"{ProductName}已经在运行，请查看任务栏托盘。",
@@ -25,11 +46,6 @@ internal static class Program
     {
       var runtime = new RuntimeProvisioner();
       runtime.EnsureExtracted();
-
-      if (args.Contains("--self-test", StringComparer.OrdinalIgnoreCase))
-      {
-        return SelfTest.Run(runtime);
-      }
 
       Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
       Application.EnableVisualStyles();
@@ -74,6 +90,7 @@ internal static class SelfTest
     try
     {
       runtime.ValidateExtractedPayload();
+      if (!ValidateInjector(runtime)) return 6;
       if (!WallpaperCatalog.IsSupported("sample.mp4") ||
           !WallpaperCatalog.IsSupported("sample.webp") ||
           WallpaperCatalog.IsSupported("sample.exe"))
@@ -92,6 +109,33 @@ internal static class SelfTest
     {
       return 4;
     }
+  }
+
+  private static bool ValidateInjector(RuntimeProvisioner runtime)
+  {
+    var start = new System.Diagnostics.ProcessStartInfo
+    {
+      FileName = runtime.NodePath,
+      WorkingDirectory = runtime.PayloadRoot,
+      UseShellExecute = false,
+      CreateNoWindow = true,
+      RedirectStandardOutput = true,
+      RedirectStandardError = true,
+    };
+    start.ArgumentList.Add(Path.Combine(runtime.ScriptsRoot, "injector.mjs"));
+    start.ArgumentList.Add("--check-payload");
+    using var process = System.Diagnostics.Process.Start(start)
+      ?? throw new InvalidOperationException("Cannot start embedded Node.js.");
+    var output = process.StandardOutput.ReadToEndAsync();
+    var error = process.StandardError.ReadToEndAsync();
+    if (!process.WaitForExit(30000))
+    {
+      process.Kill(entireProcessTree: true);
+      process.WaitForExit();
+      return false;
+    }
+    Task.WaitAll(output, error);
+    return process.ExitCode == 0;
   }
 
   private static bool RunnerReturnsAfterParentExit(RuntimeProvisioner runtime)

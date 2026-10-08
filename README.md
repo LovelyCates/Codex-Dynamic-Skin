@@ -1,4 +1,6 @@
-<h1 align="center">Codex 动态壁纸</h1>
+<h1 align="center">Codex 动态壁纸 · LovelyCates 个人版</h1>
+
+> 个人 Windows 维护分支，保留上游历史。适配目标：Codex 26.1002.52244；当前验证状态与维护方式见 [个人维护说明](docs/personal-maintenance.md)。个人构建从 [Actions](https://github.com/LovelyCates/Codex-Dynamic-Skin/actions) 获取。下方保留上游介绍，其中原项目下载链接不代表个人版产物。
 
 <p align="center">
   <strong>给 Codex 桌面端换上主题、静态壁纸和动态壁纸。</strong><br>

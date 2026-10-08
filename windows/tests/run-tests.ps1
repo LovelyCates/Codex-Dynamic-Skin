@@ -1250,7 +1250,7 @@ try {
     if ([Console]::OutputEncoding.CodePage -ne 65001) {
       [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
     }
-    $output = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $managerCommandPath @Arguments
+    $output = & powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File $managerCommandPath @Arguments
     if ($LASTEXITCODE -ne 0) {
       throw "Manager command failed: $($output -join [Environment]::NewLine)"
     }

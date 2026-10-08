@@ -448,7 +448,7 @@ html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-
 }
 
 html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"], [data-dream-task-mode="full"], [data-dream-art-task-mode="full"])[data-dream-art-wide="true"]
-  main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]):not(:has([role="main"])) [class*="_markdown"] {
+  main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]):not(:has([role="main"])) :is([class*="_markdown"], [class*="_MarkdownRoot_"], [data-markdown-text-style]) {
   color: var(--ds-text) !important;
   text-shadow:
     0 1px 2px rgb(var(--ds-bg-rgb) / .82),
@@ -456,7 +456,7 @@ html[data-dream-skin="active"]:is([data-dream-task-mode="ambient"], [data-dream-
 }
 
 html[data-dream-skin="active"][data-dream-shell="light"]:is([data-dream-task-mode="ambient"], [data-dream-art-task-mode="ambient"], [data-dream-task-mode="banner"], [data-dream-art-task-mode="banner"], [data-dream-task-mode="full"], [data-dream-art-task-mode="full"])[data-dream-art-wide="true"]
-  main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]):not(:has([role="main"])) [class*="_markdown"] {
+  main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"]):not(:has([role="main"])) :is([class*="_markdown"], [class*="_MarkdownRoot_"], [data-markdown-text-style]) {
   text-shadow:
     0 1px 2px rgb(var(--ds-panel-rgb) / .92),
     0 0 10px rgb(var(--ds-panel-rgb) / .72);
@@ -1153,7 +1153,7 @@ html[data-dream-skin="active"][data-dream-shell="light"]
 /* Current Codex builds render the home project picker as a separate opaque
    cap above the composer. Join both native controls into one continuous
    surface while leaving task and utility-route inputs untouched. */
-html[data-dream-skin="active"] :is([class*="_homeUtilityBar_"], [class*="_ComposerHomeUtilityBar_"]) {
+html[data-dream-skin="active"] :is([class*="_homeUtilityBar_"], [class*="_ComposerHomeUtilityBar_"], [data-composer-rail-item][data-composer-placement="home"]) {
   position: relative;
   z-index: 3;
   top: 0 !important;
@@ -1169,7 +1169,7 @@ html[data-dream-skin="active"] :is([class*="_homeUtilityBar_"], [class*="_Compos
   backdrop-filter: blur(16px) saturate(108%) !important;
 }
 
-html[data-dream-skin="active"] [role="main"]:has([data-testid="home-icon"]):has(:is([class*="_homeUtilityBar_"], [class*="_ComposerHomeUtilityBar_"]))
+html[data-dream-skin="active"] [role="main"]:has([data-testid="home-icon"]):has(:is([class*="_homeUtilityBar_"], [class*="_ComposerHomeUtilityBar_"], [data-composer-rail-item][data-composer-placement="home"]))
   :is(.composer-surface-chrome, [class*="_ComposerLayoutRoot_"], [data-composer-surface-variant][data-composer-radius-variant]) {
   border: 0 !important;
   border-radius: 22px !important;
@@ -1180,7 +1180,7 @@ html[data-dream-skin="active"] [role="main"]:has([data-testid="home-icon"]):has(
     inset 0 -1px rgb(var(--ds-muted-rgb) / .18) !important;
 }
 
-html[data-dream-skin="active"][data-dream-art-wide="true"] :is([class*="_homeUtilityBar_"], [class*="_ComposerHomeUtilityBar_"]) {
+html[data-dream-skin="active"][data-dream-art-wide="true"] :is([class*="_homeUtilityBar_"], [class*="_ComposerHomeUtilityBar_"], [data-composer-rail-item][data-composer-placement="home"]) {
   background: var(--ds-immersive-composer-solid) !important;
   box-shadow:
     inset 1px 0 var(--ds-immersive-line),
@@ -1190,7 +1190,7 @@ html[data-dream-skin="active"][data-dream-art-wide="true"] :is([class*="_homeUti
 }
 
 html[data-dream-skin="active"][data-dream-art-wide="true"]
-  [role="main"]:has([data-testid="home-icon"]):has(:is([class*="_homeUtilityBar_"], [class*="_ComposerHomeUtilityBar_"])) :is(.composer-surface-chrome, [class*="_ComposerLayoutRoot_"], [data-composer-surface-variant][data-composer-radius-variant]) {
+  [role="main"]:has([data-testid="home-icon"]):has(:is([class*="_homeUtilityBar_"], [class*="_ComposerHomeUtilityBar_"], [data-composer-rail-item][data-composer-placement="home"])) :is(.composer-surface-chrome, [class*="_ComposerLayoutRoot_"], [data-composer-surface-variant][data-composer-radius-variant]) {
   box-shadow:
     0 10px 30px rgb(var(--ds-bg-rgb) / .20),
     inset 1px 0 var(--ds-immersive-line),
@@ -1199,7 +1199,7 @@ html[data-dream-skin="active"][data-dream-art-wide="true"]
 }
 
 html[data-dream-skin="active"][data-dream-shell="light"][data-dream-art-wide="true"]
-  :is([class*="_homeUtilityBar_"], [class*="_ComposerHomeUtilityBar_"]) {
+  :is([class*="_homeUtilityBar_"], [class*="_ComposerHomeUtilityBar_"], [data-composer-rail-item][data-composer-placement="home"]) {
   box-shadow:
     inset 1px 0 var(--ds-immersive-line),
     inset -1px 0 var(--ds-immersive-line),
@@ -1207,22 +1207,22 @@ html[data-dream-skin="active"][data-dream-shell="light"][data-dream-art-wide="tr
   backdrop-filter: blur(8px) saturate(102%) !important;
 }
 
-html[data-dream-skin="active"] :is([class*="_homeUtilityBar_"], [class*="_ComposerHomeUtilityBar_"]) button,
+html[data-dream-skin="active"] :is([class*="_homeUtilityBar_"], [class*="_ComposerHomeUtilityBar_"], [data-composer-rail-item][data-composer-placement="home"]) button,
 html[data-dream-skin="active"] :is(.composer-surface-chrome, [class*="_ComposerLayoutRoot_"], [data-composer-surface-variant][data-composer-radius-variant]) button:not([class~="bg-token-foreground"]) {
   color: var(--ds-muted) !important;
 }
 
-html[data-dream-skin="active"] :is([class*="_homeUtilityBar_"], [class*="_ComposerHomeUtilityBar_"]) button svg,
+html[data-dream-skin="active"] :is([class*="_homeUtilityBar_"], [class*="_ComposerHomeUtilityBar_"], [data-composer-rail-item][data-composer-placement="home"]) button svg,
 html[data-dream-skin="active"] :is(.composer-surface-chrome, [class*="_ComposerLayoutRoot_"], [data-composer-surface-variant][data-composer-radius-variant]) button svg {
   color: currentColor !important;
 }
 
-html[data-dream-skin="active"] :is([class*="_homeUtilityBar_"], [class*="_ComposerHomeUtilityBar_"]) button *,
+html[data-dream-skin="active"] :is([class*="_homeUtilityBar_"], [class*="_ComposerHomeUtilityBar_"], [data-composer-rail-item][data-composer-placement="home"]) button *,
 html[data-dream-skin="active"] :is(.composer-surface-chrome, [class*="_ComposerLayoutRoot_"], [data-composer-surface-variant][data-composer-radius-variant]) button:not([class~="bg-token-foreground"]) * {
   color: currentColor !important;
 }
 
-html[data-dream-skin="active"] :is([class*="_homeUtilityBar_"], [class*="_ComposerHomeUtilityBar_"]) button:hover,
+html[data-dream-skin="active"] :is([class*="_homeUtilityBar_"], [class*="_ComposerHomeUtilityBar_"], [data-composer-rail-item][data-composer-placement="home"]) button:hover,
 html[data-dream-skin="active"] :is(.composer-surface-chrome, [class*="_ComposerLayoutRoot_"], [data-composer-surface-variant][data-composer-radius-variant]) button:not([class~="bg-token-foreground"]):hover {
   color: var(--ds-text) !important;
   background: rgb(var(--ds-accent-rgb) / .10) !important;

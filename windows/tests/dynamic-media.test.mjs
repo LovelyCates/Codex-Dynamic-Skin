@@ -44,7 +44,7 @@ const runManagerCommand = (argumentsList) => new Promise((resolve, reject) => {
   const child = spawn("powershell.exe", [
     "-NoProfile",
     "-ExecutionPolicy",
-    "Bypass",
+    "RemoteSigned",
     "-File",
     managerCommandPath,
     ...argumentsList,

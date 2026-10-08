@@ -1,8 +1,7 @@
 [CmdletBinding()]
 param(
   [string]$OutputDirectory,
-  [string]$DesktopOutput,
-  [switch]$SkipWindowsTests
+  [string]$DesktopOutput
 )
 
 $ErrorActionPreference = 'Stop'
@@ -71,11 +70,11 @@ if ((Get-Item -LiteralPath $nodeLicense).Length -lt 1000) {
   throw 'The downloaded Node.js license file is incomplete.'
 }
 
-if (-not $SkipWindowsTests) {
-  & powershell.exe -NoProfile -ExecutionPolicy Bypass `
-    -File (Join-Path $windowsRoot 'tests\run-tests.ps1')
-  if ($LASTEXITCODE -ne 0) { throw 'Windows regression tests failed.' }
-}
+& $node.Path --test (Join-Path $PSScriptRoot 'tests\manager-payload.test.mjs')
+if ($LASTEXITCODE -ne 0) { throw 'Manager payload contract tests failed.' }
+& powershell.exe -NoProfile -ExecutionPolicy RemoteSigned `
+  -File (Join-Path $windowsRoot 'tests\run-tests.ps1')
+if ($LASTEXITCODE -ne 0) { throw 'Windows regression tests failed.' }
 
 $staging = Join-Path $env:TEMP ('codex-dream-skin-manager-publish-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $staging -Force | Out-Null
@@ -109,7 +108,11 @@ try {
   if (-not (Test-Path -LiteralPath $publishedExe -PathType Leaf)) {
     throw 'Single-file publish did not produce CodexDreamSkinManager.exe.'
   }
-  $selfTest = Start-Process -FilePath $publishedExe -ArgumentList '--self-test' -Wait -PassThru
+  $selfTest = Start-Process -FilePath $publishedExe -ArgumentList '--self-test' -WindowStyle Hidden -PassThru
+  if (-not $selfTest.WaitForExit(120000)) {
+    $selfTest.Kill()
+    throw 'Published manager self-test timed out after two minutes.'
+  }
   if ($selfTest.ExitCode -ne 0) {
     throw "Published manager self-test failed with exit code $($selfTest.ExitCode)."
   }
@@ -140,6 +143,13 @@ try {
   } | ConvertTo-Json -Depth 4
 } finally {
   if (Test-Path -LiteralPath $staging) {
-    Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue
+    $temporaryRoot = [System.IO.Path]::GetFullPath($env:TEMP).TrimEnd('\') + '\'
+    $resolvedStaging = [System.IO.Path]::GetFullPath($staging)
+    if (-not $resolvedStaging.StartsWith($temporaryRoot, [System.StringComparison]::OrdinalIgnoreCase) -or
+        [System.IO.Path]::GetFileName($resolvedStaging) -notmatch '^codex-dream-skin-manager-publish-[a-f0-9]{32}$' -or
+        ((Get-Item -LiteralPath $resolvedStaging).Attributes -band [System.IO.FileAttributes]::ReparsePoint)) {
+      throw 'Refusing to clean an unexpected publish staging path.'
+    }
+    Remove-Item -LiteralPath $resolvedStaging -Recurse -Force -ErrorAction SilentlyContinue
   }
 }

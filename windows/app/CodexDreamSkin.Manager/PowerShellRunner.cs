@@ -58,7 +58,7 @@ internal sealed class PowerShellRunner
     }
     startInfo.ArgumentList.Add("-NoProfile");
     startInfo.ArgumentList.Add("-ExecutionPolicy");
-    startInfo.ArgumentList.Add("Bypass");
+    startInfo.ArgumentList.Add("RemoteSigned");
     startInfo.ArgumentList.Add("-File");
     startInfo.ArgumentList.Add(script);
     foreach (var argument in arguments)

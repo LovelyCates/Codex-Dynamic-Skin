@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $engineRoot = Split-Path -Parent $PSScriptRoot
 $versionPath = Join-Path $engineRoot 'VERSION'
-$repository = 'CCDawn/Codex-Dynamic-Skin'
+$repository = 'LovelyCates/Codex-Dynamic-Skin'
 $releasePage = "https://github.com/$repository/releases/latest"
 . (Join-Path $PSScriptRoot 'localization-windows.ps1')
 $stateRoot = Join-Path $env:LOCALAPPDATA 'CodexDreamSkin'

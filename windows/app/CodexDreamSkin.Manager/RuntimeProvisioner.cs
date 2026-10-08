@@ -10,20 +10,31 @@ internal sealed class RuntimeProvisioner
   private static readonly IReadOnlyDictionary<string, string> ResourceMap =
     new Dictionary<string, string>(StringComparer.Ordinal)
     {
+      ["Engine.VERSION"] = @"payload\VERSION",
       ["Engine.assets.dream-reference.jpg"] = @"payload\assets\dream-reference.jpg",
       ["Engine.assets.dream-skin.css"] = @"payload\assets\dream-skin.css",
       ["Engine.assets.renderer-inject.js"] = @"payload\assets\renderer-inject.js",
+      ["Engine.assets.safe-css-policy.json"] = @"payload\assets\safe-css-policy.json",
+      ["Engine.assets.safe-css-validator.mjs"] = @"payload\assets\safe-css-validator.mjs",
+      ["Engine.assets.selectors.json"] = @"payload\assets\selectors.json",
+      ["Engine.assets.theme-package-validator.mjs"] = @"payload\assets\theme-package-validator.mjs",
       ["Engine.assets.theme.json"] = @"payload\assets\theme.json",
+      ["Engine.presets.preset-gothic-void-crusade.background.jpg"] = @"payload\presets\preset-gothic-void-crusade\background.jpg",
+      ["Engine.presets.preset-gothic-void-crusade.theme.json"] = @"payload\presets\preset-gothic-void-crusade\theme.json",
+      ["Engine.scripts.apply-community-theme.ps1"] = @"payload\scripts\apply-community-theme.ps1",
+      ["Engine.scripts.check-update.ps1"] = @"payload\scripts\check-update.ps1",
       ["Engine.scripts.common-windows.ps1"] = @"payload\scripts\common-windows.ps1",
       ["Engine.scripts.config-utf8.ps1"] = @"payload\scripts\config-utf8.ps1",
       ["Engine.scripts.image-metadata.mjs"] = @"payload\scripts\image-metadata.mjs",
       ["Engine.scripts.injector.mjs"] = @"payload\scripts\injector.mjs",
       ["Engine.scripts.install-dream-skin.ps1"] = @"payload\scripts\install-dream-skin.ps1",
+      ["Engine.scripts.localization-windows.ps1"] = @"payload\scripts\localization-windows.ps1",
       ["Engine.scripts.manager-command.ps1"] = @"payload\scripts\manager-command.ps1",
       ["Engine.scripts.restore-dream-skin.ps1"] = @"payload\scripts\restore-dream-skin.ps1",
       ["Engine.scripts.start-dream-skin.ps1"] = @"payload\scripts\start-dream-skin.ps1",
       ["Engine.scripts.theme-windows.ps1"] = @"payload\scripts\theme-windows.ps1",
       ["Engine.scripts.tray-dream-skin.ps1"] = @"payload\scripts\tray-dream-skin.ps1",
+      ["Engine.scripts.validate-safe-css-file.mjs"] = @"payload\scripts\validate-safe-css-file.mjs",
       ["Engine.scripts.verify-dream-skin.ps1"] = @"payload\scripts\verify-dream-skin.ps1",
       ["Runtime.node.exe"] = @"node\node.exe",
       ["Runtime.NODE-LICENSE.txt"] = @"node\NODE-LICENSE.txt",
@@ -31,9 +42,9 @@ internal sealed class RuntimeProvisioner
 
   private readonly Assembly _assembly = Assembly.GetExecutingAssembly();
 
-  public RuntimeProvisioner()
+  public RuntimeProvisioner(string? stateRoot = null)
   {
-    StateRoot = Path.Combine(
+    StateRoot = stateRoot ?? Path.Combine(
       Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
       "CodexDreamSkin");
     var version = _assembly.GetName().Version?.ToString(3) ?? "1.0.0";

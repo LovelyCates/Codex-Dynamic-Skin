@@ -24,20 +24,31 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="..\..\VERSION" LogicalName="DreamSkin.Engine.VERSION" />
     <EmbeddedResource Include="..\..\assets\dream-reference.jpg" LogicalName="DreamSkin.Engine.assets.dream-reference.jpg" />
     <EmbeddedResource Include="..\..\assets\dream-skin.css" LogicalName="DreamSkin.Engine.assets.dream-skin.css" />
     <EmbeddedResource Include="..\..\assets\renderer-inject.js" LogicalName="DreamSkin.Engine.assets.renderer-inject.js" />
+    <EmbeddedResource Include="..\..\assets\safe-css-policy.json" LogicalName="DreamSkin.Engine.assets.safe-css-policy.json" />
+    <EmbeddedResource Include="..\..\assets\safe-css-validator.mjs" LogicalName="DreamSkin.Engine.assets.safe-css-validator.mjs" />
+    <EmbeddedResource Include="..\..\assets\selectors.json" LogicalName="DreamSkin.Engine.assets.selectors.json" />
+    <EmbeddedResource Include="..\..\assets\theme-package-validator.mjs" LogicalName="DreamSkin.Engine.assets.theme-package-validator.mjs" />
     <EmbeddedResource Include="..\..\assets\theme.json" LogicalName="DreamSkin.Engine.assets.theme.json" />
+    <EmbeddedResource Include="..\..\presets\preset-gothic-void-crusade\background.jpg" LogicalName="DreamSkin.Engine.presets.preset-gothic-void-crusade.background.jpg" />
+    <EmbeddedResource Include="..\..\presets\preset-gothic-void-crusade\theme.json" LogicalName="DreamSkin.Engine.presets.preset-gothic-void-crusade.theme.json" />
+    <EmbeddedResource Include="..\..\scripts\apply-community-theme.ps1" LogicalName="DreamSkin.Engine.scripts.apply-community-theme.ps1" />
+    <EmbeddedResource Include="..\..\scripts\check-update.ps1" LogicalName="DreamSkin.Engine.scripts.check-update.ps1" />
     <EmbeddedResource Include="..\..\scripts\common-windows.ps1" LogicalName="DreamSkin.Engine.scripts.common-windows.ps1" />
     <EmbeddedResource Include="..\..\scripts\config-utf8.ps1" LogicalName="DreamSkin.Engine.scripts.config-utf8.ps1" />
     <EmbeddedResource Include="..\..\scripts\image-metadata.mjs" LogicalName="DreamSkin.Engine.scripts.image-metadata.mjs" />
     <EmbeddedResource Include="..\..\scripts\injector.mjs" LogicalName="DreamSkin.Engine.scripts.injector.mjs" />
     <EmbeddedResource Include="..\..\scripts\install-dream-skin.ps1" LogicalName="DreamSkin.Engine.scripts.install-dream-skin.ps1" />
+    <EmbeddedResource Include="..\..\scripts\localization-windows.ps1" LogicalName="DreamSkin.Engine.scripts.localization-windows.ps1" />
     <EmbeddedResource Include="..\..\scripts\manager-command.ps1" LogicalName="DreamSkin.Engine.scripts.manager-command.ps1" />
     <EmbeddedResource Include="..\..\scripts\restore-dream-skin.ps1" LogicalName="DreamSkin.Engine.scripts.restore-dream-skin.ps1" />
     <EmbeddedResource Include="..\..\scripts\start-dream-skin.ps1" LogicalName="DreamSkin.Engine.scripts.start-dream-skin.ps1" />
     <EmbeddedResource Include="..\..\scripts\theme-windows.ps1" LogicalName="DreamSkin.Engine.scripts.theme-windows.ps1" />
     <EmbeddedResource Include="..\..\scripts\tray-dream-skin.ps1" LogicalName="DreamSkin.Engine.scripts.tray-dream-skin.ps1" />
+    <EmbeddedResource Include="..\..\scripts\validate-safe-css-file.mjs" LogicalName="DreamSkin.Engine.scripts.validate-safe-css-file.mjs" />
     <EmbeddedResource Include="..\..\scripts\verify-dream-skin.ps1" LogicalName="DreamSkin.Engine.scripts.verify-dream-skin.ps1" />
     <EmbeddedResource Include="$(NodeExe)" LogicalName="DreamSkin.Runtime.node.exe" Condition="Exists('$(NodeExe)')" />
     <EmbeddedResource Include="$(NodeLicense)" LogicalName="DreamSkin.Runtime.NODE-LICENSE.txt" Condition="Exists('$(NodeLicense)')" />

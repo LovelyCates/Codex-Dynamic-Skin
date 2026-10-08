@@ -437,12 +437,12 @@ export async function runRendererRuntimeTest(assetRoot) {
   );
   assert.match(
     css,
-    /(?:__DREAM_SELECTOR_HOME_UTILITY__|:is\(\[class\*="_homeUtilityBar_"\], \[class\*="_ComposerHomeUtilityBar_"\]\))[\s\S]{0,100}position:\s*relative;[\s\S]{0,60}z-index:\s*3;/,
+    /(?:__DREAM_SELECTOR_HOME_UTILITY__|:is\(\[class\*="_homeUtilityBar_"\], \[class\*="_ComposerHomeUtilityBar_"\], \[data-composer-rail-item\]\[data-composer-placement="home"\]\))[\s\S]{0,100}position:\s*relative;[\s\S]{0,60}z-index:\s*3;/,
     "The Home project utility must remain above the composer surface.",
   );
   assert.match(
     css,
-    /\[role="main"\]:has\(\[data-testid="home-icon"\]\):has\(:is\(\[class\*="_homeUtilityBar_"\], \[class\*="_ComposerHomeUtilityBar_"\]\)\)\s*:is\(\.composer-surface-chrome,[^)]*\)\s*\{[^}]*border-radius:\s*22px\s*!important;/,
+    /\[role="main"\]:has\(\[data-testid="home-icon"\]\):has\(:is\(\[class\*="_homeUtilityBar_"\], \[class\*="_ComposerHomeUtilityBar_"\], \[data-composer-rail-item\]\[data-composer-placement="home"\]\)\)\s*:is\(\.composer-surface-chrome,[^)]*\)\s*\{[^}]*border-radius:\s*22px\s*!important;/,
     "The Home Composer must keep rounded corners below the utility bar.",
   );
   assert.match(

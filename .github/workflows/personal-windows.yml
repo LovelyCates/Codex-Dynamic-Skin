@@ -1,0 +1,67 @@
+name: Personal Windows manager
+
+on:
+  push:
+    branches: ['personal/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: personal-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  portable-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Run macOS portable Node regressions
+        run: node --test macos/tests/*.test.mjs
+  manager:
+    needs: portable-node
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Verify shared runtime and both payloads
+        shell: pwsh
+        run: |
+          node tools/sync-runtime-assets.mjs --check
+          if ($LASTEXITCODE -ne 0) { throw 'Shared runtime is out of sync.' }
+          node windows/scripts/injector.mjs --check-payload
+          if ($LASTEXITCODE -ne 0) { throw 'Windows payload validation failed.' }
+          node macos/scripts/injector.mjs --check-payload
+          if ($LASTEXITCODE -ne 0) { throw 'macOS payload validation failed.' }
+      - name: Run Node regressions
+        shell: pwsh
+        run: |
+          $tests = Get-ChildItem windows/tests, tools -Filter '*.test.mjs' -File
+          node --test @($tests.FullName)
+          if ($LASTEXITCODE -ne 0) { throw 'Node regressions failed.' }
+      - name: Run PowerShell 7 regressions
+        shell: pwsh
+        run: ./windows/tests/run-tests.ps1
+      - name: Build and validate portable manager (includes PowerShell 5.1 regressions)
+        shell: powershell
+        run: ./windows/app/build-manager.ps1
+      - name: Upload personal build and SHA-256
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: personal-windows-manager-${{ github.sha }}
+          path: |
+            windows/dist/CodexDreamSkinManager.exe
+            windows/dist/CodexDreamSkinManager.exe.sha256
+          if-no-files-found: error
+          retention-days: 14
