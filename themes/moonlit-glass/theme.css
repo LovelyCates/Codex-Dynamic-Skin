@@ -1,6 +1,9 @@
 [data-ds-part="root"] {
   color: #273b59;
 }
+[data-ds-part="main"] {
+  background-color: rgba(247, 250, 255, 0.32);
+}
 [data-ds-part="sidebar"] {
   background-color: rgba(239, 247, 255, 0.82);
   backdrop-filter: blur(22px) saturate(1.12);
@@ -11,7 +14,7 @@
   color: #304766;
 }
 [data-ds-part="header"] {
-  background-color: rgba(244, 248, 255, 0.80);
+  background-color: rgba(244, 248, 255, 0.96);
   backdrop-filter: blur(18px);
   border-bottom-width: 1px;
   border-bottom-style: solid;
@@ -30,7 +33,7 @@
   border-radius: 14px;
 }
 [data-ds-part="message"] {
-  background-color: rgba(247, 250, 255, 0.86);
+  background-color: rgba(247, 250, 255, 0.94);
   backdrop-filter: blur(12px) saturate(1.06);
   border-radius: 18px;
   border-width: 1px;

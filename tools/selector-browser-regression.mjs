@@ -121,6 +121,94 @@ try {
     }
     await style.evaluate((node) => node.remove());
   }
+  // A video paints behind the shell. Full mode must reveal it without also
+  // removing the readable application-menu surface or unrelated card paint.
+  await page.setContent(`<!doctype html><html data-dream-skin="active"
+      data-dream-shell="light" data-dream-art-wide="true" data-dream-task-mode="full">
+    <head><style>
+      .fixture-native-control { color: rgb(1, 2, 3); }
+      #video-main { min-height: 240px; }
+    </style></head><body>
+      <div class="_ApplicationMenuTopBar_fixture_1" id="application-topbar">
+        <div role="menubar"><button role="menuitem" class="fixture-native-control" id="menu-control">File</button></div>
+        <button class="fixture-native-control" id="window-control">Minimize</button>
+      </div>
+      <main data-app-shell-main-surface="default" id="video-main">
+        <header data-app-shell-header-edge-scroll="true" id="video-header"></header>
+        <div data-app-shell-main-content-top-fade id="video-thread" style="display:flex;min-height:180px">
+          <div id="unrelated-card" class="bg-surface" style="background:rgb(12, 34, 56)">Ordinary card</div>
+          <div data-thread-scroll-footer id="thread-footer">
+            <div id="footer-whitebar" class="pointer-events-none absolute inset-x-0 bg-surface" style="background:rgb(255, 255, 255)"></div>
+            <div id="footer-gradient" class="pointer-events-none absolute inset-x-0 bg-gradient-to-t from-surface" style="background:linear-gradient(rgb(255, 255, 255), transparent)"></div>
+            <div class="_ComposerLayoutRoot_fixture_2"><div contenteditable="true" id="video-editor" style="min-width:160px;min-height:44px"></div></div>
+          </div>
+        </div>
+      </main>
+      <video id="codex-dream-skin-media" aria-hidden="true"></video>
+    </body></html>`);
+  const topbarMatches = await page.evaluate((selector) =>
+    document.getElementById("application-topbar").matches(selector), selectors["header-tint"]);
+  assert.ok(topbarMatches, "Current application topbar outside main receives the header contract");
+  for (const platform of ["macos", "windows"]) {
+    const css = await fs.readFile(new URL(`../${platform}/assets/dream-skin.css`, import.meta.url), "utf8");
+    const style = await page.addStyleTag({ content: css });
+    for (const mode of ["full", "off"]) {
+      const painted = await page.evaluate((mode) => {
+        document.documentElement.setAttribute("data-dream-task-mode", mode);
+        document.documentElement.setAttribute("data-dream-art-task-mode", mode);
+        const computed = (id) => getComputedStyle(document.getElementById(id));
+        const editor = document.getElementById("video-editor");
+        const rect = editor.getBoundingClientRect();
+        return {
+          mainColor: computed("video-main").backgroundColor,
+          mainImage: computed("video-main").backgroundImage,
+          menuColor: computed("application-topbar").backgroundColor,
+          menuForeground: computed("menu-control").color,
+          windowForeground: computed("window-control").color,
+          expectedForeground: getComputedStyle(document.documentElement).getPropertyValue("--ds-text").trim(),
+          card: computed("unrelated-card").backgroundColor,
+          footerVisible: document.getElementById("thread-footer").checkVisibility(),
+          footerWhitebarColor: computed("footer-whitebar").backgroundColor,
+          footerGradientColor: computed("footer-gradient").backgroundColor,
+          footerGradientImage: computed("footer-gradient").backgroundImage,
+          editorVisible: editor.checkVisibility(), width: rect.width, height: rect.height,
+        };
+      }, mode);
+      const alpha = (color) => color.startsWith("rgba(")
+        ? Number(color.slice(color.lastIndexOf(",") + 1, -1).trim()) : 1;
+      if (mode === "full") {
+        assert.equal(alpha(painted.mainColor), 0, `${platform}: full video mode reveals video through main`);
+        if (painted.mainImage !== "none") {
+          const stops = painted.mainImage.match(/rgba?\([^)]*\)/g) ?? [];
+          assert.ok(stops.length > 0 && stops.every((color) => alpha(color) < 1),
+            `${platform}: full video mode permits only translucent gradient stops`);
+        }
+      } else {
+        assert.ok(alpha(painted.mainColor) >= .9, `${platform}: off mode keeps an opaque main surface`);
+      }
+      assert.ok(alpha(painted.menuColor) >= .9, `${platform}/${mode}: menu controls retain readable backing`);
+      // Resolve the token through a temporary element to compare canonical rgb,
+      // independent of whether the shared theme declares hex or rgb values.
+      const expectedColor = await page.evaluate((color) => {
+        const probe = document.createElement("span");
+        probe.style.color = color;
+        document.body.appendChild(probe);
+        const result = getComputedStyle(probe).color;
+        probe.remove();
+        return result;
+      }, painted.expectedForeground);
+      assert.equal(painted.menuForeground, expectedColor, `${platform}/${mode}: menu text uses theme foreground`);
+      assert.equal(painted.windowForeground, expectedColor, `${platform}/${mode}: window control uses theme foreground`);
+      assert.equal(painted.card, "rgb(12, 34, 56)", `${platform}/${mode}: unrelated card keeps native paint`);
+      assert.equal(alpha(painted.footerWhitebarColor), 0, `${platform}/${mode}: empty footer whitebar is cleared`);
+      assert.equal(alpha(painted.footerGradientColor), 0, `${platform}/${mode}: empty footer gradient color is cleared`);
+      assert.equal(painted.footerGradientImage, "none", `${platform}/${mode}: empty footer gradient image is cleared`);
+      assert.ok(painted.footerVisible, `${platform}/${mode}: footer containing the editor stays visible`);
+      assert.ok(painted.editorVisible && painted.width >= 160 && painted.height >= 44,
+        `${platform}/${mode}: video transparency preserves usable editor geometry`);
+    }
+    await style.evaluate((node) => node.remove());
+  }
   console.log("PASS: synthetic Codex 26.1002 selector DOM and both generated stylesheets in Chromium");
 } finally {
   await browser.close();

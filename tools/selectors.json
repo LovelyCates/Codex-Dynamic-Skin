@@ -2,12 +2,12 @@
   "schema": "codex-dream-skin-selectors/1",
   "description": "双端统一选择器契约。scope 与 required 来自双端 DOM 快照实测；shell-main 与 header-tint 另由 2026-07-31 Codex 26.727.40816 真实 macOS renderer 复核。doctor / CI 应逐条 querySelector 并按 tier 判级：L1 缺失=皮肤主行为受损，L2 缺失=精修静默降级。",
   "verifiedAgainst": {
-    "date": "2026-10-08",
+    "date": "2026-10-09",
     "codexVersions": [
       {
         "version": "26.1002.52244",
         "platform": "windows",
-        "evidence": "fixture: 本机 Store 26.1002.7124.0 的只读 app.asar 静态核对（app-initial-25361a10f2bf.js / app-primary-2b28b2369958.js），确认 home utility 改为 rail item、MarkdownRoot 改为大写前缀；重建 DOM 的浏览器回归，不是 live renderer 或 CDP 注入验收"
+        "evidence": "maintainer: 2026-10-09 Windows live renderer 与前台整窗截图确认 ApplicationMenuTopBar 独立菜单栏、视频会话 main 不透明遮挡；此前 fixture: 本机 Store 26.1002.7124.0 的只读 app.asar 静态核对（app-initial-25361a10f2bf.js / app-primary-2b28b2369958.js），确认 home utility 改为 rail item、MarkdownRoot 改为大写前缀；重建 DOM 的浏览器回归，不是 live renderer 或 CDP 注入验收"
       },
       {
         "version": "26.818",
@@ -74,7 +74,7 @@
   "selectors": [
     { "key": "shell-main", "selector": "main:is(.main-surface, [data-app-shell-main-surface], [class*=\"_MainContentSurface_\"])", "tier": "L1", "scope": "all", "required": true, "notes": "全局主表面。26.727.40816 提供 data-app-shell-main-surface，并使用 _MainContentSurface_ CSS Module；保留旧类兼容历史版本，前缀只限定在 main 元素。mac 设置页缺失（win 存在），缺失时整页仅 L0" },
     { "key": "left-panel", "selector": "aside.app-shell-left-panel", "tier": "L1", "scope": "all", "required": true, "notes": "左侧栏；收起/重建时会移除节点，勿在其消失时清皮" },
-    { "key": "header-tint", "selector": "header:is(.app-header-tint, [data-app-shell-header-edge-scroll], [class*=\"_Header_\"])", "tier": "L1", "scope": "all", "required": true, "notes": "顶栏。26.727.40816 输出 data-app-shell-header-edge-scroll 并使用 _Header_ CSS Module；保留旧类兼容历史版本，前缀只限定在 header 元素。皮肤不得覆盖其 position/z-index（既有回归约束）" },
+    { "key": "header-tint", "selector": ":is(header:is(.app-header-tint, [data-app-shell-header-edge-scroll], [class*=\"_Header_\"]), div[class*=\"_ApplicationMenuTopBar_\"]:has([role=\"menubar\"]))", "tier": "L1", "scope": "all", "required": true, "notes": "顶栏。26.727.40816 输出 data-app-shell-header-edge-scroll 并使用 _Header_ CSS Module；保留旧类兼容历史版本，前缀只限定在 header 元素。皮肤不得覆盖其 position/z-index（既有回归约束）" },
     { "key": "main-content-top-fade", "selector": ":is(.app-shell-main-content-top-fade, [data-app-shell-main-content-top-fade][aria-hidden=\"true\"], [class*=\"_MainContentTopFade_\"])", "tier": "L2", "scope": "all", "required": false, "notes": "主区独立装饰遮罩。26.1002.52244 实机确认 data-app-shell-main-content-top-fade 已位于包含聊天和输入框的容器，不能单独据此隐藏；属性别名必须同时标记 aria-hidden=true，保留独立遮罩的模块类与旧类。" },
     { "key": "home-icon", "selector": "[data-testid=\"home-icon\"]", "tier": "L1", "scope": "home", "required": true, "notes": "首页判定信号，双端一致" },
     { "key": "home-route", "selector": "[role=\"main\"]:has([data-testid=\"home-icon\"])", "tier": "L1", "scope": "home", "required": true, "notes": "首页容器。实测 [role=main] 仅存在于首页——它不是通用路由锚点，thread 页没有" },

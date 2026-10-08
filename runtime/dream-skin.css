@@ -1244,6 +1244,13 @@ html[data-dream-skin="active"] __DREAM_SELECTOR_SHELL_MAIN__:not(:has(__DREAM_SE
   background-image: none !important;
 }
 
+/* 26.1002 uses empty paint-only siblings for the footer scrim. Never hide the
+   footer itself: it also owns the editor and native controls. */
+html[data-dream-skin="active"] __DREAM_SELECTOR_SHELL_MAIN__
+  [data-thread-scroll-footer] div.pointer-events-none.absolute.inset-x-0:empty:is(.bg-surface, .bg-gradient-to-t.from-surface) {
+  background: transparent !important;
+}
+
 /* Native wide blocks escape the prose column with negative inline margins.
    Keep tables inside the themed message and delegate width overflow to the
    existing horizontal scroller. */
@@ -1488,4 +1495,25 @@ html[data-dream-skin="active"] [data-ds-part="message"] { border-radius: 16px; }
 html[data-dream-skin="active"]:has(#codex-dream-skin-media) body {
   background-image: none !important;
   background-color: transparent !important;
+}
+
+/* Video is a shared layer behind the app, whereas image task art is painted
+   inside main::before. A solid main surface otherwise hides the whole video.
+   Keep off/ambient behavior intact; full mode explicitly requests the art. */
+html[data-dream-skin="active"]:has(#codex-dream-skin-media):is([data-dream-task-mode="full"], [data-dream-art-task-mode="full"])
+  __DREAM_SELECTOR_SHELL_MAIN__ {
+  background-color: transparent !important;
+}
+
+/* Current Windows has a separate application menu above the page header.
+   Keep its native geometry, dragging and disabled states; supply contrast. */
+html[data-dream-skin="active"] div[class*="_ApplicationMenuTopBar_"]:has([role="menubar"]) {
+  background: rgb(var(--ds-panel-rgb) / .96) !important;
+  color: var(--ds-text) !important;
+  border-bottom: 1px solid var(--ds-line);
+}
+
+html[data-dream-skin="active"] __DREAM_SELECTOR_HEADER_TINT__
+  :is(button, [role="menuitem"]):not(:disabled):not([aria-disabled="true"]) {
+  color: var(--ds-text) !important;
 }
