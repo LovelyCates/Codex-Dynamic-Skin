@@ -90,7 +90,16 @@ internal sealed class PowerShellRunner
       (startInfo.Environment.TryGetValue("PATH", out var path) ? path : Environment.GetEnvironmentVariable("PATH"));
 
     using var process = new Process { StartInfo = startInfo };
+    cancellationToken.ThrowIfCancellationRequested();
     process.Start();
+    // Dispose cancels on the UI thread before its message loop exits. Stop the
+    // owned process tree synchronously, without relying on an async continuation.
+    using var cancellationRegistration = cancellationToken.Register(() =>
+    {
+      try { if (!process.HasExited) process.Kill(entireProcessTree: true); }
+      catch (InvalidOperationException) { /* Already exited. */ }
+      catch (System.ComponentModel.Win32Exception) { /* Async cleanup retries. */ }
+    });
     using var captureCancellation = new CancellationTokenSource();
     var output = new BoundedCapture(detachedOutput ? MaximumCapturedCharacters : int.MaxValue);
     var error = new BoundedCapture(detachedOutput ? MaximumCapturedCharacters : int.MaxValue);
@@ -98,14 +107,14 @@ internal sealed class PowerShellRunner
     var errorTask = captureOutput ? error.ReadAsync(process.StandardError, captureCancellation.Token) : Task.CompletedTask;
     try
     {
-      await process.WaitForExitAsync(cancellationToken);
+      await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
     }
     catch (OperationCanceledException)
     {
       if (!process.HasExited)
       {
         process.Kill(entireProcessTree: true);
-        await process.WaitForExitAsync(CancellationToken.None);
+        await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
       }
       throw;
     }
@@ -119,9 +128,9 @@ internal sealed class PowerShellRunner
         try
         {
           if (detachedOutput || cancellationToken.IsCancellationRequested)
-            await Task.WhenAny(readers, Task.Delay(DrainTimeout));
+            await Task.WhenAny(readers, Task.Delay(DrainTimeout)).ConfigureAwait(false);
           else
-            await readers.WaitAsync(cancellationToken);
+            await readers.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -156,7 +165,7 @@ internal sealed class PowerShellRunner
       {
         while (true)
         {
-          var count = await reader.ReadAsync(buffer.AsMemory(), cancellationToken);
+          var count = await reader.ReadAsync(buffer.AsMemory(), cancellationToken).ConfigureAwait(false);
           if (count == 0) return;
           lock (_text)
           {

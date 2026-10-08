@@ -499,7 +499,7 @@ internal sealed class MainForm : Form
         ? "暂无壁纸 · 点击左侧「添加壁纸」导入"
         : availableCount == items.Length
           ? $"共 {items.Length} 个可使用的壁纸"
-          : $"共 {items.Length} 个壁纸 · {availableCount} 个可用 · {items.Length - availableCount} 个场景缺少组件";
+          : $"共 {items.Length} 个壁纸 · {availableCount} 个可直接应用 · {items.Length - availableCount} 个场景可转视频";
 
       foreach (var item in items)
       {
@@ -634,7 +634,7 @@ internal sealed class MainForm : Form
     ShowPreview(item);
     if (!_service.CanApplyWallpaper(item.Kind))
     {
-      ShowMessage(SceneStreamHost.UnavailableMessage, false);
+      ShowMessage("此场景可转换成循环视频；转换后从壁纸库选择视频应用。鼠标和音频互动不会保留。", false);
     }
   }
 
@@ -683,8 +683,7 @@ internal sealed class MainForm : Form
     }
     if (!_service.CanApplyWallpaper(_selectedWallpaper.Kind))
     {
-      ShowMessage(SceneStreamHost.UnavailableMessage, false);
-      UpdateApplyButton();
+      await ConvertSelectedSceneAsync();
       return;
     }
     await RunOperationAsync(
@@ -695,6 +694,17 @@ internal sealed class MainForm : Form
       $"已应用：{_selectedWallpaper.Name}");
     StopVideoPreview();
     _videoHost.Visible = false;
+  }
+
+  private async Task ConvertSelectedSceneAsync()
+  {
+    var selected = _selectedWallpaper;
+    if (selected?.Kind != WallpaperKind.Scene) return;
+    await RunOperationAsync(
+      "正在准备场景组件并转换视频（首次下载约 91 MiB），请稍候…",
+      async () => { await _service.ConvertSceneVideoAsync(selected.Path, _settings.LibraryPath, _lifetime.Token); },
+      "转换完成，视频已添加到壁纸库。请选择新视频预览，再点击应用。转换不保留鼠标或音频互动。",
+      refreshLibrary: true);
   }
 
   private async Task CommitRevealAsync()
@@ -975,9 +985,9 @@ internal sealed class MainForm : Form
   {
     var available = _selectedWallpaper is not null &&
       _service.CanApplyWallpaper(_selectedWallpaper.Kind);
-    _applyButton.Enabled = !_busy && available;
+    _applyButton.Enabled = !_busy && _selectedWallpaper is not null;
     _applyButton.Text = _selectedWallpaper?.Kind == WallpaperKind.Scene && !available
-      ? "场景组件未安装"
+      ? "转换为循环视频（首次下载组件）"
       : "应用到 Codex";
   }
 

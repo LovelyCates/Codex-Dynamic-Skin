@@ -21,6 +21,40 @@ internal sealed class DreamSkinService : IDisposable
   public bool CanApplyWallpaper(WallpaperKind kind) =>
     kind != WallpaperKind.Scene || _sceneStream.IsAvailable;
 
+  public async Task<string> ConvertSceneVideoAsync(
+    string scenePath, string outputDirectory, CancellationToken cancellationToken = default)
+  {
+    var fullScene = Path.GetFullPath(scenePath);
+    var project = Directory.GetParent(fullScene);
+    var workshop = project?.Parent;
+    if (!File.Exists(fullScene) ||
+        !Path.GetFileName(fullScene).Equals("scene.pkg", StringComparison.OrdinalIgnoreCase) ||
+        project is null || !project.Name.All(char.IsDigit) || workshop is null ||
+        !workshop.FullName.EndsWith(Path.Combine("steamapps", "workshop", "content", "431960"), StringComparison.OrdinalIgnoreCase))
+      throw new InvalidOperationException("请选择 Steam 已下载的 Wallpaper Engine 场景。");
+    var steamApps = workshop.Parent?.Parent?.Parent;
+    var assets = Path.Combine(steamApps?.FullName ?? "", "common", "wallpaper_engine", "assets");
+    if (!Directory.Exists(assets))
+      throw new InvalidOperationException("未找到同一 Steam 库中的 Wallpaper Engine assets 目录。");
+
+    using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+    timeout.CancelAfter(TimeSpan.FromMinutes(15));
+    var result = await _runner.RunScriptAsync(
+      Path.Combine(_runtime.ScriptsRoot, "convert-scene-video.ps1"),
+      new[] { "-ScenePath", fullScene, "-AssetsPath", assets,
+        "-OutputDirectory", Path.GetFullPath(outputDirectory), "-StateRoot", _runtime.StateRoot },
+      timeout.Token);
+    result.ThrowIfFailed("转换场景视频");
+    using var response = JsonDocument.Parse(result.StandardOutput);
+    var video = Path.GetFullPath(RequireJsonString(response.RootElement, "path"));
+    var library = Path.GetFullPath(outputDirectory).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+    if (!video.StartsWith(library, StringComparison.OrdinalIgnoreCase) ||
+        !Path.GetExtension(video).Equals(".mp4", StringComparison.OrdinalIgnoreCase) ||
+        !File.Exists(video) || new FileInfo(video).Length == 0)
+      throw new InvalidOperationException("转换器未返回有效的壁纸库视频。");
+    return video;
+  }
+
   public async Task StartAsync(CancellationToken cancellationToken = default)
   {
     var arguments = new List<string> { "-Port", "9335" };

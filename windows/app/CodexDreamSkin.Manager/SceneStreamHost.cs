@@ -17,8 +17,8 @@ internal sealed class SceneStreamHost : IDisposable
   }
 
   internal const string UnavailableMessage =
-    "此版本未附带 Wallpaper Engine 场景播放组件，暂时不能播放 scene.pkg。" +
-    "请选择视频类壁纸，或通过“添加壁纸”导入 MP4 / WebM 文件。";
+    "未安装场景实时播放组件。请在壁纸库选择此场景，点击“转换为循环视频”，" +
+    "转换后选择生成的 MP4 应用；鼠标和音频互动不会保留。";
 
   public bool IsAvailable => FindViewerPath() is not null;
 

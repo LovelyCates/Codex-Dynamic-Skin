@@ -81,7 +81,17 @@ internal static class RunnerSelfTests
       using (var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(3)))
       {
         var cancelled = false;
-        try { RunFixture(spawnChild + "\nStart-Sleep -Seconds 30", true, cancellation.Token); }
+        File.WriteAllText(script, spawnChild + "\nStart-Sleep -Seconds 30", new UTF8Encoding(false));
+        var previousContext = SynchronizationContext.Current;
+        Task<ProcessResult> pending;
+        try
+        {
+          // A closed WinForms message loop never dispatches continuations.
+          SynchronizationContext.SetSynchronizationContext(new ClosedUiContext());
+          pending = runner.RunScriptAsync(script, Array.Empty<string>(), cancellation.Token, detachedOutput: true);
+        }
+        finally { SynchronizationContext.SetSynchronizationContext(previousContext); }
+        try { pending.WaitAsync(TimeSpan.FromSeconds(8)).GetAwaiter().GetResult(); }
         catch (OperationCanceledException) { cancelled = true; }
         if (!cancelled || !File.Exists(identity)) return false;
         try
@@ -119,5 +129,10 @@ internal static class RunnerSelfTests
         throw new IOException("Refusing to remove an unexpected test directory.");
       Directory.Delete(temporary, recursive: true);
     }
+  }
+
+  private sealed class ClosedUiContext : SynchronizationContext
+  {
+    public override void Post(SendOrPostCallback callback, object? state) { }
   }
 }

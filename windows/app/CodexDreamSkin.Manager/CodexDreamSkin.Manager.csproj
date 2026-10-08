@@ -39,6 +39,7 @@
     <EmbeddedResource Include="..\..\scripts\check-update.ps1" LogicalName="DreamSkin.Engine.scripts.check-update.ps1" />
     <EmbeddedResource Include="..\..\scripts\common-windows.ps1" LogicalName="DreamSkin.Engine.scripts.common-windows.ps1" />
     <EmbeddedResource Include="..\..\scripts\config-utf8.ps1" LogicalName="DreamSkin.Engine.scripts.config-utf8.ps1" />
+    <EmbeddedResource Include="..\..\scripts\convert-scene-video.ps1" LogicalName="DreamSkin.Engine.scripts.convert-scene-video.ps1" />
     <EmbeddedResource Include="..\..\scripts\image-metadata.mjs" LogicalName="DreamSkin.Engine.scripts.image-metadata.mjs" />
     <EmbeddedResource Include="..\..\scripts\injector.mjs" LogicalName="DreamSkin.Engine.scripts.injector.mjs" />
     <EmbeddedResource Include="..\..\scripts\install-dream-skin.ps1" LogicalName="DreamSkin.Engine.scripts.install-dream-skin.ps1" />

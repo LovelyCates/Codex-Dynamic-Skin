@@ -34,13 +34,15 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File windows/app/build-
 
 输出位于 `windows/dist/`。构建、自检与回归不应重启 Codex 或修改官方应用包。
 
-## Wallpaper Engine 场景限制
+## Wallpaper Engine 场景转视频
 
 个人 EXE 包含普通 MP4/WebM 视频播放所需运行时，但不包含 `scene.pkg` 所需的 `SceneViewer.exe`。上游当前仅提供场景通信接口，独立侧车包、对应源码与兼容性验证仍未完成；不能把扫描到场景文件当作已经能播放。
 
-未检测到场景组件时，个人管理器只允许导入视频，显示未能导入的场景数量；已导入的场景保留预览，但禁用应用按钮并说明原因。普通图片和视频继续可用。不要下载任意同名 `SceneViewer.exe`：该组件必须实现上游特定的流协议，仅文件名相同不代表兼容。
+个人管理器允许导入场景引用。未安装实时侧车时，选择场景后点击“转换为循环视频”：首次从 [WPE Baker 2.0.0 官方 Release](https://github.com/isshiki-works/wpe-baker/releases/tag/v2.0.0) 下载约 91 MiB 工具包，核对固定 SHA-256 后安装；复用时逐项验证缓存完整性。保留原包许可证与源码说明，依赖不嵌入 MIT 管理器，也不随本仓库重新分发。GPL/LGPL 对应源码包在同一上游 Release。不要下载任意同名 `SceneViewer.exe`：文件名相同不代表流协议兼容。
 
-当前使用方式：在 Wallpaper Engine 中订阅并下载“视频”类型壁纸，然后从管理器的 Wallpaper Engine 入口导入；或直接用“添加壁纸”选本地 `.mp4` / `.webm`。场景动态播放尚未交付。
+转换要求 Windows Vulkan 显卡、同一 Steam 库内已安装 Wallpaper Engine 的 assets，以及至少 2.5 GB 临时空间。输出为 1280×720、24 fps、12 秒静音 H.264 视频，尾部用 1 秒交叉淡化衔接循环；这不等于原场景的自然周期。生成文件加入壁纸库，用户预览并选择后才应用，不自动切换主题。鼠标、音频、时钟等实时互动不会保留；第三方渲染器不保证兼容所有场景。
+
+普通视频仍可通过 Wallpaper Engine 入口或“添加壁纸”直接导入 MP4/WebM。场景转换已经在一张本地壁纸上验证渲染与编码；真实 Codex 中的显示仍需完成启动后的实机检查。
 
 ## 每次 Codex 更新后的检查
 

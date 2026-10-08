@@ -25,6 +25,7 @@ internal sealed class RuntimeProvisioner
       ["Engine.scripts.check-update.ps1"] = @"payload\scripts\check-update.ps1",
       ["Engine.scripts.common-windows.ps1"] = @"payload\scripts\common-windows.ps1",
       ["Engine.scripts.config-utf8.ps1"] = @"payload\scripts\config-utf8.ps1",
+      ["Engine.scripts.convert-scene-video.ps1"] = @"payload\scripts\convert-scene-video.ps1",
       ["Engine.scripts.image-metadata.mjs"] = @"payload\scripts\image-metadata.mjs",
       ["Engine.scripts.injector.mjs"] = @"payload\scripts\injector.mjs",
       ["Engine.scripts.install-dream-skin.ps1"] = @"payload\scripts\install-dream-skin.ps1",
