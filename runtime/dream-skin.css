@@ -1251,6 +1251,34 @@ html[data-dream-skin="active"] __DREAM_SELECTOR_SHELL_MAIN__
   background: transparent !important;
 }
 
+/* The summary card floats over the conversation art. Keep its native layout,
+   scroll and actions, and leave compact dynamic-isle variants untouched. */
+html[data-dream-skin="active"] __DREAM_SELECTOR_SHELL_MAIN__
+  div[data-summary-panel-variant="summary"] {
+  background: rgb(var(--ds-panel-rgb) / .90) !important;
+  border: 1px solid var(--ds-line) !important;
+  border-radius: 20px !important;
+  backdrop-filter: blur(18px) saturate(106%) !important;
+  box-shadow: 0 8px 24px rgb(var(--ds-accent-rgb) / .12) !important;
+  color: var(--ds-text) !important;
+}
+
+html[data-dream-skin="active"] __DREAM_SELECTOR_SHELL_MAIN__
+  div[data-summary-panel-variant="summary"]
+  [data-slot="thread-summary-panel-item-button"]:not(:disabled):not([aria-disabled="true"]) {
+  color: var(--ds-text) !important;
+}
+
+/* Sticky section titles need their own readable scrim while the list scrolls. */
+html[data-dream-skin="active"] __DREAM_SELECTOR_SHELL_MAIN__
+  div[data-summary-panel-variant="summary"] header.bg-surface-elevated-secondary,
+html[data-dream-skin="active"] __DREAM_SELECTOR_SHELL_MAIN__
+  div[data-summary-panel-variant="summary"] header.bg-surface-elevated-secondary::before {
+  background: rgb(var(--ds-panel-rgb) / .94) !important;
+  color: var(--ds-muted) !important;
+  backdrop-filter: blur(12px);
+}
+
 /* Native wide blocks escape the prose column with negative inline margins.
    Keep tables inside the themed message and delegate width overflow to the
    existing horizontal scroller. */
