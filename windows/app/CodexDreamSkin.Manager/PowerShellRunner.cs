@@ -140,6 +140,8 @@ internal sealed class PowerShellRunner
         }
       }
     }
+    // Process exit can win the race with the token notification after Kill.
+    cancellationToken.ThrowIfCancellationRequested();
     if (!captureOutput)
     {
       return new ProcessResult(process.ExitCode, string.Empty, string.Empty);
