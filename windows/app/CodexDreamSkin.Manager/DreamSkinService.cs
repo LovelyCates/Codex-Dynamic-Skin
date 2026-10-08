@@ -38,7 +38,7 @@ internal sealed class DreamSkinService : IDisposable
       _runtime.StartScript,
       arguments,
       cancellationToken,
-      captureOutput: false);
+      detachedOutput: true);
     result.ThrowIfFailed("启动 Codex 动态壁纸");
   }
 

@@ -171,6 +171,12 @@ try {
     $appearanceRecovery = 'blocked'
     $cdpIdentity = $null
   }
+  if ($RestartExisting -and $null -eq $previousState -and $null -ne $cdpIdentity) {
+    # A failed launch can leave a valid listener without a managed session or
+    # visible window. Only explicit restart authorization may rebuild it.
+    # Keep normal, state-backed CDP sessions reusable for hot theme changes.
+    $cdpIdentity = $null
+  }
   $debugReady = $null -ne $cdpIdentity
   $codexProcesses = if (Test-DreamSkinPathEqual -Left $codexToStop.Executable -Right $currentCodex.Executable) {
     $currentProcesses
@@ -178,7 +184,7 @@ try {
     Get-DreamSkinCodexProcesses -Codex $codexToStop
   }
   $closedExistingCodex = $false
-  if (-not $debugReady -and $codexProcesses.Count -gt 0) {
+  if (-not $debugReady -and @($codexProcesses).Count -gt 0) {
     $restartAuthorized = [bool]$RestartExisting
     if (-not $restartAuthorized -and $PromptRestart) {
       $restartAuthorized = Confirm-DreamSkinRestart -Message `

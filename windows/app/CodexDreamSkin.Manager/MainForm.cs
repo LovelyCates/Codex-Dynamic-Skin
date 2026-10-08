@@ -494,9 +494,12 @@ internal sealed class MainForm : Form
         .Take(500)
         .ToArray();
       ClearLibraryCards();
+      var availableCount = items.Count(item => _service.CanApplyWallpaper(item.Kind));
       _librarySummary.Text = items.Length == 0
         ? "暂无壁纸 · 点击左侧「添加壁纸」导入"
-        : $"共 {items.Length} 个可直接使用的壁纸";
+        : availableCount == items.Length
+          ? $"共 {items.Length} 个可使用的壁纸"
+          : $"共 {items.Length} 个壁纸 · {availableCount} 个可用 · {items.Length - availableCount} 个场景缺少组件";
 
       foreach (var item in items)
       {

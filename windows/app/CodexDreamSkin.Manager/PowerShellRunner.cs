@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace CodexDreamSkin.Manager;
 
@@ -12,12 +14,28 @@ internal sealed record ProcessResult(int ExitCode, string StandardOutput, string
     }
 
     var detail = string.IsNullOrWhiteSpace(StandardError) ? StandardOutput : StandardError;
-    throw new InvalidOperationException($"{operation}失败（{ExitCode}）：{detail.Trim()}");
+    throw new InvalidOperationException($"{operation}失败（{ExitCode}）：{SanitizeDiagnostic(detail.Trim())}");
+  }
+
+  internal static string SanitizeDiagnostic(string detail)
+  {
+    // Only error presentation is redacted: successful structured output must stay intact.
+    detail = Regex.Replace(detail, """(?i)(["']?authorization["']?\s*[:=]\s*)(?:"[^"]*"|'[^']*'|(?:bearer\s+)?[^\s,;]+)""", "$1[redacted]");
+    detail = Regex.Replace(detail, """(?i)(["']?(?:api[_-]?key|access[_-]?token|refresh[_-]?token|token|password|secret)["']?\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;]+)""", "$1[redacted]");
+    detail = Regex.Replace(detail, @"\bsk-[A-Za-z0-9_-]{12,}", "[redacted]");
+    foreach (var folder in new[] { Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolder.UserProfile })
+    {
+      var prefix = Environment.GetFolderPath(folder);
+      if (!string.IsNullOrWhiteSpace(prefix)) detail = detail.Replace(prefix, "[user]", StringComparison.OrdinalIgnoreCase);
+    }
+    return detail;
   }
 }
 
 internal sealed class PowerShellRunner
 {
+  internal const int MaximumCapturedCharacters = 64 * 1024;
+  private static readonly TimeSpan DrainTimeout = TimeSpan.FromMilliseconds(500);
   private readonly RuntimeProvisioner _runtime;
   private readonly string _powershellPath;
 
@@ -40,7 +58,8 @@ internal sealed class PowerShellRunner
     string script,
     IEnumerable<string> arguments,
     CancellationToken cancellationToken = default,
-    bool captureOutput = true)
+    bool captureOutput = true,
+    bool detachedOutput = false)
   {
     var startInfo = new ProcessStartInfo
     {
@@ -72,12 +91,11 @@ internal sealed class PowerShellRunner
 
     using var process = new Process { StartInfo = startInfo };
     process.Start();
-    var outputTask = captureOutput
-      ? process.StandardOutput.ReadToEndAsync(cancellationToken)
-      : Task.FromResult(string.Empty);
-    var errorTask = captureOutput
-      ? process.StandardError.ReadToEndAsync(cancellationToken)
-      : Task.FromResult(string.Empty);
+    using var captureCancellation = new CancellationTokenSource();
+    var output = new BoundedCapture(detachedOutput ? MaximumCapturedCharacters : int.MaxValue);
+    var error = new BoundedCapture(detachedOutput ? MaximumCapturedCharacters : int.MaxValue);
+    var outputTask = captureOutput ? output.ReadAsync(process.StandardOutput, captureCancellation.Token) : Task.CompletedTask;
+    var errorTask = captureOutput ? error.ReadAsync(process.StandardError, captureCancellation.Token) : Task.CompletedTask;
     try
     {
       await process.WaitForExitAsync(cancellationToken);
@@ -91,13 +109,71 @@ internal sealed class PowerShellRunner
       }
       throw;
     }
+    finally
+    {
+      if (captureOutput)
+      {
+        // Descendants can inherit the write handles after PowerShell has exited.
+        // Retain available diagnostics, but never wait for their lifetime or EOF.
+        var readers = Task.WhenAll(outputTask, errorTask);
+        try
+        {
+          if (detachedOutput || cancellationToken.IsCancellationRequested)
+            await Task.WhenAny(readers, Task.Delay(DrainTimeout));
+          else
+            await readers.WaitAsync(cancellationToken);
+        }
+        finally
+        {
+          captureCancellation.Cancel();
+          process.StandardOutput.Dispose();
+          process.StandardError.Dispose();
+        }
+      }
+    }
     if (!captureOutput)
     {
       return new ProcessResult(process.ExitCode, string.Empty, string.Empty);
     }
     return new ProcessResult(
       process.ExitCode,
-      await outputTask,
-      await errorTask);
+      output.Snapshot(),
+      error.Snapshot());
+  }
+
+  private sealed class BoundedCapture
+  {
+    private readonly int _maximumCharacters;
+    private readonly StringBuilder _text = new();
+    private bool _truncated;
+
+    public BoundedCapture(int maximumCharacters) => _maximumCharacters = maximumCharacters;
+
+    public async Task ReadAsync(StreamReader reader, CancellationToken cancellationToken)
+    {
+      var buffer = new char[4096];
+      try
+      {
+        while (true)
+        {
+          var count = await reader.ReadAsync(buffer.AsMemory(), cancellationToken);
+          if (count == 0) return;
+          lock (_text)
+          {
+            var retained = Math.Min(count, _maximumCharacters - _text.Length);
+            _text.Append(buffer, 0, retained);
+            _truncated |= retained < count;
+          }
+        }
+      }
+      catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+      catch (ObjectDisposedException) when (cancellationToken.IsCancellationRequested) { }
+      catch (IOException) { /* A closed child pipe must not replace the process exit result. */ }
+    }
+
+    public string Snapshot()
+    {
+      lock (_text) return _text.ToString() + (_truncated ? "\n[output truncated]" : string.Empty);
+    }
   }
 }

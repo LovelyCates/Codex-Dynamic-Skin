@@ -1028,6 +1028,22 @@
     try { return [...document.querySelectorAll(selector)]; } catch { return []; }
   };
   const selectorNodes = (key) => queryAll(selectorByKey.get(key)?.selector);
+  const isRendered = (node) => {
+    if (!node || node.isConnected === false) return false;
+    try {
+      if (typeof node.checkVisibility === "function") {
+        return node.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true });
+      }
+      for (let current = node; current; current = current.parentElement) {
+        const style = getComputedStyle(current);
+        if (style.display === "none" || style.visibility === "hidden" ||
+            style.visibility === "collapse" || style.contentVisibility === "hidden" ||
+            Number.parseFloat(style.opacity) === 0) return false;
+      }
+      return true;
+    } catch { return false; }
+  };
+  const visibleSelectorHit = (key) => selectorNodes(key).some(isRendered);
   const genericNodes = (selector) => queryAll(selector)
     .filter((node) => node && typeof node.setAttribute === "function");
   const genericInputNodes = () => genericNodes(
@@ -1194,9 +1210,11 @@
     const overlay = selectorHit("overlay-menu") || selectorHit("overlay-dialog") ||
       selectorHit("overlay-popper");
     let baseState = "thread";
-    if (selectorHit("settings-panel") || selectorHit("appearance-radio") ||
-      stableTestidHit("theme-preview")) baseState = "settings";
-    else if (selectorHit("home-icon") || selectorHit("home-route")) baseState = "home";
+    // Tabbed Codex keeps inactive routes mounted under display:none. Their
+    // anchors must not turn an active task into a hidden home/settings route.
+    if (visibleSelectorHit("settings-panel") || visibleSelectorHit("appearance-radio") ||
+      queryAll(stableTestidSelector("theme-preview")).some(isRendered)) baseState = "settings";
+    else if (visibleSelectorHit("home-route") || visibleSelectorHit("home-icon")) baseState = "home";
     else if (!selectorHit("shell-main") && !document.querySelector('main, [role="main"]')) baseState = "settings";
     const missingL1 = SELECTOR_CONTRACT.selectors
       .filter((entry) => entry.tier === "L1" && entry.required &&
@@ -1306,7 +1324,10 @@
     // SPA route changes are observable as DOM mutations even when Chromium's
     // Navigation API emits no event. Keep verification scope and public parts
     // derived from the same post-mutation tree.
-    partObserver = new MutationObserver(() => scheduleEnsure({ scope: true, parts: true }, 80));
+    partObserver = new MutationObserver((records) => scheduleEnsure({
+      scope: true,
+      parts: !records?.length || records.some((record) => record.type !== "attributes"),
+    }, 80));
   }
 
   let mediaQuery = null;
@@ -1382,7 +1403,10 @@
   };
   const observePartTree = (node) => {
     if (!partObserver || !node) return;
-    partObserver.observe(node, { childList: true, subtree: true });
+    partObserver.observe(node, {
+      childList: true, subtree: true, attributes: true,
+      attributeFilter: ["style", "class", "hidden", "inert", "aria-hidden"],
+    });
   };
   observeAttributes(document.documentElement);
   const observeBody = () => {

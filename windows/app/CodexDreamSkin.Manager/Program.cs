@@ -27,7 +27,17 @@ internal static class Program
       }
       finally
       {
-        if (Directory.Exists(testRoot)) Directory.Delete(testRoot, recursive: true);
+        if (Directory.Exists(testRoot))
+        {
+          var temporaryRoot = Path.GetFullPath(Path.GetTempPath()).TrimEnd(Path.DirectorySeparatorChar)
+            + Path.DirectorySeparatorChar;
+          var resolvedRoot = Path.GetFullPath(testRoot);
+          if (!resolvedRoot.StartsWith(temporaryRoot, StringComparison.OrdinalIgnoreCase) ||
+              !System.Text.RegularExpressions.Regex.IsMatch(Path.GetFileName(resolvedRoot), "^codex-manager-self-test-[a-f0-9]{32}$") ||
+              (File.GetAttributes(resolvedRoot) & FileAttributes.ReparsePoint) != 0)
+            throw new IOException("Refusing to remove an unexpected self-test directory.");
+          Directory.Delete(resolvedRoot, recursive: true);
+        }
       }
     }
 
@@ -103,7 +113,7 @@ internal static class SelfTest
       {
         return 3;
       }
-      return RunnerReturnsAfterParentExit(runtime) ? 0 : 5;
+      return RunnerSelfTests.Run(runtime) ? 0 : 5;
     }
     catch
     {
@@ -138,74 +148,4 @@ internal static class SelfTest
     return process.ExitCode == 0;
   }
 
-  private static bool RunnerReturnsAfterParentExit(RuntimeProvisioner runtime)
-  {
-    var temporary = Path.Combine(
-      Path.GetTempPath(),
-      "codex-dream-skin-runner-test-" + Guid.NewGuid().ToString("N"));
-    Directory.CreateDirectory(temporary);
-    var script = Path.Combine(temporary, "parent-exits-first.ps1");
-    int? childProcessId = null;
-    try
-    {
-      File.WriteAllText(
-        script,
-        """
-        $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
-        $stdout = Join-Path $PSScriptRoot 'child-stdout.log'
-        $stderr = Join-Path $PSScriptRoot 'child-stderr.log'
-        $pidFile = Join-Path $PSScriptRoot 'child.pid'
-        $child = Start-Process -FilePath $powershell -ArgumentList @(
-          '-NoProfile', '-Command', 'Start-Sleep -Seconds 5'
-        ) -WindowStyle Hidden -PassThru `
-          -RedirectStandardOutput $stdout -RedirectStandardError $stderr
-        Set-Content -LiteralPath $pidFile -Value $child.Id -Encoding Ascii
-        """,
-        new System.Text.UTF8Encoding(false));
-
-      using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-      var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-      var result = new PowerShellRunner(runtime)
-        .RunScriptAsync(
-          script,
-          Array.Empty<string>(),
-          cancellation.Token,
-          captureOutput: false)
-        .GetAwaiter()
-        .GetResult();
-      stopwatch.Stop();
-
-      var pidFile = Path.Combine(temporary, "child.pid");
-      if (File.Exists(pidFile) &&
-          int.TryParse(File.ReadAllText(pidFile).Trim(), out var parsedProcessId))
-      {
-        childProcessId = parsedProcessId;
-      }
-
-      return result.ExitCode == 0 &&
-        childProcessId.HasValue &&
-        stopwatch.Elapsed < TimeSpan.FromSeconds(3);
-    }
-    finally
-    {
-      if (childProcessId.HasValue)
-      {
-        try
-        {
-          using var child = System.Diagnostics.Process.GetProcessById(childProcessId.Value);
-          if (!child.HasExited &&
-              child.ProcessName.Equals("powershell", StringComparison.OrdinalIgnoreCase))
-          {
-            child.Kill(entireProcessTree: true);
-            child.WaitForExit(1000);
-          }
-        }
-        catch
-        {
-          // The short-lived test child may have already exited.
-        }
-      }
-      Directory.Delete(temporary, true);
-    }
-  }
 }

@@ -9,15 +9,18 @@ import { SKIN_VERSION, verifySession } from "../scripts/injector.mjs";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const startPath = path.resolve(here, "../scripts/start-dream-skin.ps1");
 
+const selectorContract = JSON.parse(await fs.readFile(new URL("../assets/selectors.json", import.meta.url), "utf8"));
+const selectorFor = (key) => selectorContract.selectors.find((entry) => entry.key === key).selector;
 const selectors = {
-  shell: 'main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"])',
-  sidebar: "aside.app-shell-left-panel",
-  composer: ".composer-surface-chrome",
-  homeIcon: '[data-testid="home-icon"]',
-  home: '[role="main"]:has([data-testid="home-icon"])',
-  gameSource: '[data-feature="game-source"]',
-  suggestions: ".group\\/home-suggestions",
-  settings: 'input[name="appearance-theme"]',
+  shell: selectorFor("shell-main"),
+  sidebar: selectorFor("left-panel"),
+  composer: selectorFor("composer-chrome"),
+  homeIcon: selectorFor("home-icon"),
+  home: selectorFor("home-route"),
+  gameSource: selectorFor("game-source"),
+  suggestions: selectorFor("home-suggestions"),
+  settings: selectorFor("appearance-radio"),
+  settingsPanel: selectorFor("settings-panel"),
   themePreview: '[data-testid="theme-preview"]',
 };
 
@@ -77,6 +80,10 @@ function makeHome(options = {}) {
   home.firstElementChild = { firstElementChild: { firstElementChild: hero } };
   const suggestions = options.suggestions ?? null;
   home.querySelector = (selector) => selector === selectors.suggestions ? suggestions : null;
+  home.querySelectorAll = (selector) => {
+    const match = home.querySelector(selector);
+    return match ? [match] : [];
+  };
   return home;
 }
 
@@ -119,10 +126,13 @@ function makeDomFixture({
       if (selector === selectors.gameSource || selector === selectors.suggestions) return homeSignal;
       if (selector === '[data-ds-part="main"], [data-ds-part="home"]') return genericMain ?? home;
       if (selector === '[data-ds-part="composer"]') return genericInput;
-      if (selector === selectors.settings || selector === selectors.themePreview) return settings;
+      if (selector === selectors.settings || selector === selectors.settingsPanel || selector === selectors.themePreview) return settings;
       return null;
     },
-    querySelectorAll: () => [],
+    querySelectorAll(selector) {
+      const match = this.querySelector(selector);
+      return match == null ? [] : Array.isArray(match) ? match : [match];
+    },
     getElementById: (id) => id === "codex-dream-skin-style" ? styleNode : null,
   };
   const window = {
@@ -229,6 +239,7 @@ test("visible settings is the only L0 structure exception", async () => {
 
   const fallbackHome = makeHome({ rect: makeRect(900, 650, 20, 20) });
   const lateHomeIconSignal = {
+    ...makeElement(),
     closest: (selector) => selector === '[role="main"]' ? fallbackHome : null,
   };
   const lateHomeIcon = await verify({
@@ -515,4 +526,44 @@ test("start cannot announce active after renderer verification exhausts its dead
     "A nonzero verify result must reach the startup rollback after its bounded retry window.");
   assert.ok(stateCleanup > startupCatch && rethrow > stateCleanup && activeMessage > rethrow,
     "Verification failure must clear transient state and rethrow before the active message.");
+});
+
+
+test("retained hidden tabs cannot mask visible shell anchors or create a Home route", async () => {
+  const hidden = makeElement({ rect: makeRect(0, 0), style: { display: "none" } });
+  const hiddenHome = makeHome({ rect: makeRect(0, 0), style: { display: "none" } });
+  const visible = makeElement({ rect: makeRect(640, 480, 20, 20) });
+  const response = await verify({ dom: makeDomFixture({
+    shell: [hidden, visible], sidebar: [hidden, visible], composer: [hidden, visible],
+    home: hiddenHome,
+  }) });
+  const result = response.result;
+  assert.equal(result.homePresent, false);
+  assert.equal(result.shell.width, 640);
+  assert.equal(result.sidebar.visible, true);
+  assert.equal(result.composer.visible, true);
+  assert.equal(result.pass, true, "A visible non-Home surface must ignore retained hidden Home DOM");
+});
+
+test("a stale Home scope with only hidden Home DOM still fails closed", async () => {
+  const response = await verify({ dom: makeDomFixture({
+    scope: { level: "L1", baseState: "home", missingL1: [] },
+    home: makeHome({ rect: makeRect(0, 0), style: { display: "none" } }),
+  }) });
+  const result = response.result;
+  assert.equal(result.homePresent, false);
+  assert.equal(result.pass, false);
+});
+
+test("visible Home wins over an earlier retained hidden Home", async () => {
+  const response = await verify({ dom: makeDomFixture({
+    scope: { level: "L1", baseState: "home", missingL1: [] },
+    home: [
+      makeHome({ rect: makeRect(0, 0), style: { display: "none" } }),
+      makeHome({ rect: makeRect(900, 650, 20, 20) }),
+    ],
+  }) });
+  const result = response.result;
+  assert.equal(result.homePresent, true);
+  assert.equal(result.pass, true);
 });

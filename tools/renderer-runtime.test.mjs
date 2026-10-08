@@ -58,6 +58,12 @@ function makeFixture({
     const node = {
       name,
       parentElement,
+      checkVisibility() {
+        for (let current = node; current; current = current.parentElement) {
+          if (current.rendered === false) return false;
+        }
+        return true;
+      },
       style: styleDeclaration(),
       get attributes() { return attributesFor(values); },
       getAttribute(attribute) { return values.get(attribute) ?? null; },
@@ -229,6 +235,10 @@ function makeFixture({
       return (selectorNodes.get(selector) || [])[0] || null;
     },
     querySelectorAll(selector) {
+      if ((settingsPanel && selector === '[data-settings-panel-slug="general-settings"]') ||
+          (settings && (selector.includes("appearance-theme") || selector.includes("theme-preview")))) {
+        return [document.querySelector(selector)];
+      }
       if (selector === "[data-ds-part]") {
         return [...domNodes].filter((node) => node.getAttribute?.("data-ds-part") !== null);
       }
@@ -619,6 +629,26 @@ export async function runRendererRuntimeTest(assetRoot) {
   assert.equal(dynamicMessage.getAttribute("data-ds-part"), "message");
   assert.equal(state.metrics.routePasses, 2,
     "DOM mutations must refresh SPA route scope alongside public parts");
+
+  const tabbed = makeFixture();
+  tabbed.partFixtures.home.rendered = false;
+  vm.runInNewContext(tabbed.payloadFor(), tabbed.context);
+  const tabState = tabbed.window.__CODEX_DREAM_SKIN_STATE__;
+  assert.equal(tabState.scope.baseState, "thread",
+    "A retained home below a hidden tab must not override the active task");
+  const tabObserver = tabbed.observers.find(observer => observer.options?.childList);
+  assert.ok(tabObserver.options.attributeFilter.includes("style"));
+  const partPasses = tabState.metrics.partPasses;
+  tabbed.partFixtures.home.rendered = true;
+  tabObserver.callback([{ type: "attributes", attributeName: "style" }]);
+  tabbed.flushTimers(80);
+  assert.equal(tabState.scope.baseState, "home", "Showing a retained tab must refresh scope");
+  assert.equal(tabState.metrics.partPasses, partPasses,
+    "Visibility changes must not rewrite native composer styles and trigger observer loops");
+  tabbed.partFixtures.home.rendered = false;
+  tabObserver.callback([{ type: "attributes", attributeName: "hidden" }]);
+  tabbed.flushTimers(80);
+  assert.equal(tabState.scope.baseState, "thread");
 
   const modernMessages = makeFixture({ nativeAppearance: "dark", modernMessages: true });
   vm.runInNewContext(modernMessages.payloadFor(), modernMessages.context);

@@ -1116,7 +1116,7 @@ export async function inspectNativeWindow(session) {
 export async function verifySession(session, expectedThemeId = null, expectedRevision = null) {
   const renderer = await session.evaluate(`(() => {
     const box = (node) => {
-      if (!node) return null;
+      if (!node || typeof node.getBoundingClientRect !== 'function') return null;
       const r = node.getBoundingClientRect();
       const style = getComputedStyle(node);
       const opacity = Number.parseFloat(style.opacity);
@@ -1140,15 +1140,25 @@ export async function verifySession(session, expectedThemeId = null, expectedRev
         visible: Boolean(node.isConnected !== false && cssVisible && intersectsViewport),
       };
     };
-    const homeIndicator = document.querySelector(${selectorLiteral("home-icon")});
-    const homeSignal = homeIndicator ?? document.querySelector(${selectorLiteral("game-source")}) ??
-      document.querySelector(${selectorLiteral("home-suggestions")});
-    const homeRoute = homeSignal?.closest('[role="main"]') ?? null;
-    // Codex 26.721.x can render the home content before home-icon. Reuse the
-    // already-resolved semantic home container so a healthy home session is
-    // not rejected solely because the stricter home-icon selector is late.
-    const home = document.querySelector(${selectorLiteral("home-route")}) ?? homeRoute;
-    const suggestions = home?.querySelector(${selectorLiteral("home-suggestions")}) ?? null;
+    // Inactive Codex tabs remain mounted. Prefer a visible candidate instead
+    // of allowing a hidden first match to describe the active surface.
+    const pick = (selector, root = document, visibleOnly = false) => {
+      const nodes = [...root.querySelectorAll(selector)];
+      return nodes.find((node) => box(node)?.visible) ??
+        (visibleOnly ? null : nodes[0] ?? null);
+    };
+    const homeSignals = [
+      ...document.querySelectorAll(${selectorLiteral("home-icon")}),
+      ...document.querySelectorAll(${selectorLiteral("game-source")}),
+      ...document.querySelectorAll(${selectorLiteral("home-suggestions")}),
+    ];
+    const homeRoute = homeSignals.filter((node) => box(node)?.visible)
+      .map((node) => node.closest('[role="main"]'))
+      .find((node) => box(node)?.visible) ?? null;
+    // Retain the late-home-icon fallback, but never promote a retained hidden
+    // Home tab to homePresent. A stale runtime home scope still fails below.
+    const home = pick(${selectorLiteral("home-route")}, document, true) ?? homeRoute;
+    const suggestions = home ? pick(${selectorLiteral("home-suggestions")}, home) : null;
     const cardButtons = suggestions ? [...suggestions.querySelectorAll('button')] : [];
     const cardBoxes = cardButtons.map(box);
     const visibleCards = cardBoxes.filter((item) => item?.visible);
@@ -1185,16 +1195,16 @@ export async function verifySession(session, expectedThemeId = null, expectedRev
       ?? chainCandidates.findLast((item) => item?.visible)
       ?? siblingCandidates.find((item) => item?.visible)
       ?? box(boxableChain[boxableChain.length - 1]);
-    const projectButton = box(home?.querySelector(${selectorLiteral("project-selector")} + " > button"));
-    const shell = box(document.querySelector(${selectorLiteral("shell-main")}));
-    const composer = box(document.querySelector(${selectorLiteral("composer-chrome")}));
-    const sidebar = box(document.querySelector(${selectorLiteral("left-panel")}));
-    const genericMain = box(document.querySelector('[data-ds-part="main"], [data-ds-part="home"]'));
-    const genericInput = box(document.querySelector('[data-ds-part="composer"]'));
+    const projectButton = box(home ? pick(${selectorLiteral("project-selector")} + " > button", home) : null);
+    const shell = box(pick(${selectorLiteral("shell-main")}));
+    const composer = box(pick(${selectorLiteral("composer-chrome")}));
+    const sidebar = box(pick(${selectorLiteral("left-panel")}));
+    const genericMain = box(pick('[data-ds-part="main"], [data-ds-part="home"]'));
+    const genericInput = box(pick('[data-ds-part="composer"]'));
     const settingsBoxes = [
-      box(document.querySelector(${selectorLiteral("settings-panel")})),
-      box(document.querySelector(${selectorLiteral("appearance-radio")})),
-      box(document.querySelector(${stableTestidLiteral("theme-preview")})),
+      box(pick(${selectorLiteral("settings-panel")})),
+      box(pick(${selectorLiteral("appearance-radio")})),
+      box(pick(${stableTestidLiteral("theme-preview")})),
     ];
     const settings = settingsBoxes.find((item) => item?.visible) ??
       settingsBoxes.find(Boolean) ?? null;

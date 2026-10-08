@@ -1,20 +1,23 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import vm from "node:vm";
+import { readFileSync } from "node:fs";
 import { SKIN_VERSION, verifySession, waitForVerifiedSession } from "../scripts/injector.mjs";
 
-// Mirrors macos/assets/selectors.json — keep these in sync when that file's
-// selector strings change, since this mock's querySelector matches by exact
-// string equality and silently returns null on drift.
+// Match the generated contract exactly; stale shorthand selectors must not
+// silently turn a present composer or settings surface into a missing anchor.
+const selectorContract = JSON.parse(readFileSync(new URL("../assets/selectors.json", import.meta.url), "utf8"));
+const selectorFor = (key) => selectorContract.selectors.find((entry) => entry.key === key).selector;
 const selectors = {
-  shell: 'main:is(.main-surface, [data-app-shell-main-surface], [class*="_MainContentSurface_"])',
-  sidebar: "aside.app-shell-left-panel",
-  composer: ".composer-surface-chrome",
-  home: '[role="main"]:has([data-testid="home-icon"])',
-  homeIcon: '[data-testid="home-icon"]',
-  gameSource: '[data-feature="game-source"]',
-  suggestions: ".group\\/home-suggestions",
-  settings: 'input[name="appearance-theme"]',
+  shell: selectorFor("shell-main"),
+  sidebar: selectorFor("left-panel"),
+  composer: selectorFor("composer-chrome"),
+  homeIcon: selectorFor("home-icon"),
+  home: selectorFor("home-route"),
+  gameSource: selectorFor("game-source"),
+  suggestions: selectorFor("home-suggestions"),
+  settings: selectorFor("appearance-radio"),
+  settingsPanel: selectorFor("settings-panel"),
   themePreview: '[data-testid="theme-preview"]',
 };
 
@@ -49,12 +52,21 @@ function makeElement({
   };
 }
 
+function makeHome(options = {}) {
+  const home = makeElement(options);
+  const hero = makeElement();
+  home.children = [hero];
+  home.firstElementChild = hero;
+  return home;
+}
+
 function makeDomFixture({
   scope = { level: "L1", baseState: "thread", missingL1: [] },
   shell = makeElement(),
   sidebar = makeElement(),
   composer = makeElement(),
   settings = null,
+  home = null,
   visibilityState = "visible",
   viewportWidth = 1280,
   viewportHeight = 800,
@@ -75,12 +87,16 @@ function makeDomFixture({
       if (selector === selectors.shell) return shell;
       if (selector === selectors.sidebar) return sidebar;
       if (selector === selectors.composer) return composer;
-      if (selector === selectors.settings || selector === selectors.themePreview) return settings;
-      if (selector === selectors.home || selector === selectors.homeIcon ||
+      if (selector === selectors.settings || selector === selectors.settingsPanel || selector === selectors.themePreview) return settings;
+      if (selector === selectors.home) return home;
+      if (selector === selectors.homeIcon ||
           selector === selectors.gameSource || selector === selectors.suggestions) return null;
       return null;
     },
-    querySelectorAll: () => [],
+    querySelectorAll(selector) {
+      const match = this.querySelector(selector);
+      return match == null ? [] : Array.isArray(match) ? match : [match];
+    },
     getElementById: (id) => id === "codex-dream-skin-style" ? styleNode : null,
   };
   const window = {
@@ -189,4 +205,44 @@ test("verification rethrows the last transient error when no sample succeeds", a
     waitForVerifiedSession(session, 15, "fixture-theme", "fixture-revision", 1),
     /Execution context stayed unavailable/,
   );
+});
+
+
+test("retained hidden tabs cannot mask visible shell anchors or create a Home route", async () => {
+  const hidden = makeElement({ rect: makeRect(0, 0), style: { display: "none" } });
+  const hiddenHome = makeHome({ rect: makeRect(0, 0), style: { display: "none" } });
+  const visible = makeElement({ rect: makeRect(640, 480, 20, 20) });
+  const response = await verify({ dom: makeDomFixture({
+    shell: [hidden, visible], sidebar: [hidden, visible], composer: [hidden, visible],
+    home: hiddenHome,
+  }) });
+  const result = response;
+  assert.equal(result.homePresent, false);
+  assert.equal(result.shell.width, 640);
+  assert.equal(result.sidebar.visible, true);
+  assert.equal(result.composer.visible, true);
+  assert.equal(result.pass, true, "A visible non-Home surface must ignore retained hidden Home DOM");
+});
+
+test("a stale Home scope with only hidden Home DOM still fails closed", async () => {
+  const response = await verify({ dom: makeDomFixture({
+    scope: { level: "L1", baseState: "home", missingL1: [] },
+    home: makeHome({ rect: makeRect(0, 0), style: { display: "none" } }),
+  }) });
+  const result = response;
+  assert.equal(result.homePresent, false);
+  assert.equal(result.pass, false);
+});
+
+test("visible Home wins over an earlier retained hidden Home", async () => {
+  const response = await verify({ dom: makeDomFixture({
+    scope: { level: "L1", baseState: "home", missingL1: [] },
+    home: [
+      makeHome({ rect: makeRect(0, 0), style: { display: "none" } }),
+      makeHome({ rect: makeRect(900, 650, 20, 20) }),
+    ],
+  }) });
+  const result = response;
+  assert.equal(result.homePresent, true);
+  assert.equal(result.pass, true);
 });

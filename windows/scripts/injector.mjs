@@ -1542,7 +1542,7 @@ export async function verifySession(
   const nativeWindow = await inspectTargetWindow(session, targetId);
   return session.evaluate(`(() => {
     const box = (node) => {
-      if (!node) return null;
+      if (!node || typeof node.getBoundingClientRect !== 'function') return null;
       const r = node.getBoundingClientRect();
       const style = getComputedStyle(node);
       const opacity = Number.parseFloat(style.opacity);
@@ -1566,15 +1566,25 @@ export async function verifySession(
         visible: Boolean(node.isConnected !== false && cssVisible && intersectsViewport),
       };
     };
-    const homeIndicator = document.querySelector(${selectorLiteral("home-icon")});
-    const homeSignal = homeIndicator ?? document.querySelector(${selectorLiteral("game-source")}) ??
-      document.querySelector(${selectorLiteral("home-suggestions")});
-    const homeRoute = homeSignal?.closest('[role="main"]') ?? null;
-    // Codex 26.721.x can render the home content before home-icon. Reuse the
-    // already-resolved semantic home container so a healthy home session is
-    // not rejected solely because the stricter home-icon selector is late.
-    const home = document.querySelector(${selectorLiteral("home-route")}) ?? homeRoute;
-    const suggestions = home?.querySelector(${selectorLiteral("home-suggestions")}) ?? null;
+    // Inactive Codex tabs remain mounted. Prefer a visible candidate instead
+    // of allowing a hidden first match to describe the active surface.
+    const pick = (selector, root = document, visibleOnly = false) => {
+      const nodes = [...root.querySelectorAll(selector)];
+      return nodes.find((node) => box(node)?.visible) ??
+        (visibleOnly ? null : nodes[0] ?? null);
+    };
+    const homeSignals = [
+      ...document.querySelectorAll(${selectorLiteral("home-icon")}),
+      ...document.querySelectorAll(${selectorLiteral("game-source")}),
+      ...document.querySelectorAll(${selectorLiteral("home-suggestions")}),
+    ];
+    const homeRoute = homeSignals.filter((node) => box(node)?.visible)
+      .map((node) => node.closest('[role="main"]'))
+      .find((node) => box(node)?.visible) ?? null;
+    // Retain the late-home-icon fallback, but never promote a retained hidden
+    // Home tab to homePresent. A stale runtime home scope still fails below.
+    const home = pick(${selectorLiteral("home-route")}, document, true) ?? homeRoute;
+    const suggestions = home ? pick(${selectorLiteral("home-suggestions")}, home) : null;
     const cardButtons = suggestions ? [...suggestions.querySelectorAll('button')] : [];
     const cards = cardButtons.map(box);
     const visibleCards = cards.filter((item) => item?.visible);
@@ -1593,9 +1603,13 @@ export async function verifySession(
     const visibleSuggestionLabels = suggestionLabels.filter((item) => item?.visible);
     const suggestionLabelColorsMatch = visibleSuggestionLabels.every((item) =>
       item.color === item.expectedColor);
-    const settingsAnchor = document.querySelector(${selectorLiteral("settings-panel")}) ||
-      document.querySelector(${selectorLiteral("appearance-radio")}) ||
-      document.querySelector(${stableTestidLiteral("theme-preview")});
+    const settingsCandidates = [
+      pick(${selectorLiteral("settings-panel")}),
+      pick(${selectorLiteral("appearance-radio")}),
+      pick(${stableTestidLiteral("theme-preview")}),
+    ];
+    const settingsAnchor = settingsCandidates.find((node) => box(node)?.visible) ??
+      settingsCandidates.find(Boolean) ?? null;
     const runtime = window.__CODEX_DREAM_SKIN_STATE__;
     const adopted = runtime?.styleMode === 'adopted' &&
       [...document.adoptedStyleSheets].includes(runtime.styleSheet);
@@ -1651,11 +1665,11 @@ export async function verifySession(
       visibleCardCount: visibleCards.length,
       suggestionLabels,
       suggestionLabelColorsMatch,
-      composer: box(document.querySelector(${selectorLiteral("composer-chrome")})),
-      shell: box(document.querySelector(${selectorLiteral("shell-main")})),
-      sidebar: box(document.querySelector(${selectorLiteral("left-panel")})),
-      genericMain: box(document.querySelector('[data-ds-part="main"], [data-ds-part="home"]')),
-      genericInput: box(document.querySelector('[data-ds-part="composer"]')),
+      composer: box(pick(${selectorLiteral("composer-chrome")})),
+      shell: box(pick(${selectorLiteral("shell-main")})),
+      sidebar: box(pick(${selectorLiteral("left-panel")})),
+      genericMain: box(pick('[data-ds-part="main"], [data-ds-part="home"]')),
+      genericInput: box(pick('[data-ds-part="composer"]')),
       nativeWindow: ${JSON.stringify(nativeWindow)},
       documentVisibility: document.visibilityState ?? null,
       documentHidden: document.hidden === true,
@@ -1821,7 +1835,6 @@ async function runOneShot(options) {
     for (const { session } of connected) session.close();
     throw error;
   }
-  const payload = loadedPayload?.payload ?? null;
   const results = [];
   let screenshotCaptured = false;
   try {
@@ -1835,7 +1848,7 @@ async function runOneShot(options) {
               `正在应用「${loadedPayload.theme.name}」…`,
             );
           }
-          await applyToSession(session, payload);
+          await applyToSession(session, loadedPayload);
           await new Promise((resolve) => setTimeout(resolve, 850));
         }
         if (options.reload) {
@@ -1848,7 +1861,7 @@ async function runOneShot(options) {
                 `正在应用「${loadedPayload.theme.name}」…`,
               );
             }
-            await applyToSession(session, payload);
+            await applyToSession(session, loadedPayload);
           }
         }
         if (operationToken) {
