@@ -69,6 +69,15 @@ try {
   // native dark text in wide full task mode, for every Markdown generation.
   await page.evaluate(() => {
     document.querySelector("#home").remove();
+    // Live 26.1002 layout: the data attribute marks the whole conversation,
+    // while the aria-hidden module node is the separate decorative fade.
+    document.querySelector("#main").insertAdjacentHTML("beforeend", `
+      <div data-app-shell-main-content-top-fade id="thread-content" style="display:flex;min-height:180px">
+        <article>Fixture conversation</article>
+        <div class="_ComposerLayoutRoot_fixture_2"><div contenteditable="true" id="thread-editor" style="min-width:160px;min-height:44px"></div></div>
+      </div>
+      <div class="_MainContentTopFade_fixture_2" aria-hidden="true" id="decorative-fade"></div>
+      <div data-app-shell-main-content-top-fade aria-hidden="true" id="legacy-decorative-fade"></div>`);
     document.documentElement.setAttribute("data-dream-task-mode", "full");
     document.documentElement.setAttribute("data-dream-art-wide", "true");
     document.documentElement.style.setProperty("--ds-text", "rgb(237, 242, 250)");
@@ -80,6 +89,21 @@ try {
   for (const platform of ["macos", "windows"]) {
     const css = await fs.readFile(new URL(`../${platform}/assets/dream-skin.css`, import.meta.url), "utf8");
     const style = await page.addStyleTag({ content: css });
+    const thread = await page.evaluate(() => {
+      const editor = document.getElementById("thread-editor");
+      const rect = editor.getBoundingClientRect();
+      return {
+        display: getComputedStyle(document.getElementById("thread-content")).display,
+        editorVisible: editor.checkVisibility(), width: rect.width, height: rect.height,
+        fade: getComputedStyle(document.getElementById("decorative-fade")).display,
+        legacyFade: getComputedStyle(document.getElementById("legacy-decorative-fade")).display,
+      };
+    });
+    assert.equal(thread.display, "flex", `${platform}: fade anchor must not hide the conversation`);
+    assert.ok(thread.editorVisible && thread.width >= 160 && thread.height >= 44,
+      `${platform}: the real editor remains laid out and visible`);
+    assert.equal(thread.fade, "none", `${platform}: decorative module fade is still removed`);
+    assert.equal(thread.legacyFade, "none", `${platform}: explicitly decorative legacy fade is removed`);
     for (const shell of ["dark", "light"]) {
       const foregrounds = await page.evaluate((shell) => {
         document.documentElement.setAttribute("data-dream-shell", shell);
