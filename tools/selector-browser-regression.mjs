@@ -65,6 +65,38 @@ try {
     assert.equal(painted.composerRadius, "22px", `${platform}: home composer rule parses with the extended alias`);
     await style.evaluate((node) => node.remove());
   }
+  // Exercise the real cascade for #309: a light themed foreground must beat
+  // native dark text in wide full task mode, for every Markdown generation.
+  await page.evaluate(() => {
+    document.querySelector("#home").remove();
+    document.documentElement.setAttribute("data-dream-task-mode", "full");
+    document.documentElement.setAttribute("data-dream-art-wide", "true");
+    document.documentElement.style.setProperty("--ds-text", "rgb(237, 242, 250)");
+    for (const id of ["legacy-markdown", "current-markdown", "semantic-markdown"]) {
+      document.getElementById(id).classList.add("fixture-native-markdown");
+    }
+  });
+  await page.addStyleTag({ content: ".fixture-native-markdown { color: rgb(1, 2, 3) !important; }" });
+  for (const platform of ["macos", "windows"]) {
+    const css = await fs.readFile(new URL(`../${platform}/assets/dream-skin.css`, import.meta.url), "utf8");
+    const style = await page.addStyleTag({ content: css });
+    for (const shell of ["dark", "light"]) {
+      const foregrounds = await page.evaluate((shell) => {
+        document.documentElement.setAttribute("data-dream-shell", shell);
+        return ["legacy-markdown", "current-markdown", "semantic-markdown"].map((id) => {
+          const computed = getComputedStyle(document.getElementById(id));
+          return { id, color: computed.color, shadow: computed.textShadow };
+        });
+      }, shell);
+      for (const foreground of foregrounds) {
+        assert.equal(foreground.color, "rgb(237, 242, 250)",
+          `${platform}/${shell}/${foreground.id}: full task mode must override native dark Markdown text`);
+        assert.notEqual(foreground.shadow, "none",
+          `${platform}/${shell}/${foreground.id}: full task mode must retain the contrast shadow`);
+      }
+    }
+    await style.evaluate((node) => node.remove());
+  }
   console.log("PASS: synthetic Codex 26.1002 selector DOM and both generated stylesheets in Chromium");
 } finally {
   await browser.close();

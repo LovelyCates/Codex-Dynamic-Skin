@@ -8,7 +8,8 @@
 
 - `origin`：LovelyCates/Codex-Dynamic-Skin，个人开发与构建。
 - `upstream`：CCDawn/Codex-Dynamic-Skin，动态壁纸上游。
-- `personal/windows-current`：当前 Windows 适配开发分支。
+- `personal/windows-current`：个人仓库的默认维护分支，包含 Windows 适配与个人构建流程。
+- `main`：保留最初复刻的上游基线，避免个人修改混入同步参考。
 - Windows 客户端的更新检查指向个人仓库。尚未创建 Release 时会报告检查失败；这不代表已是最新版，也不会回退下载上游包。
 
 按需同步上游，在独立分支解决冲突并验证：
@@ -42,6 +43,8 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File windows/app/build-
 5. 首次皮肤会话可能需要重新登录受管 profile；正在工作的 Codex 需要重启时，先完成当前任务并告知用户。
 
 初始适配目标为 Codex `26.1002.52244`。实时渲染与恢复尚未验收时，不标注“完全兼容”。不承诺自动兼容未来所有版本。
+
+2026-10-08 已核对的变化：Windows Store 包 `26.1002.7124.0` 内对应产品版本 `26.1002.52244`；首页工具栏由旧 CSS Module 变为 home rail item，Markdown 根节点改为 `_MarkdownRoot_`。个人版补充对应选择器并保留旧版路径。静态包核对与独立浏览器重建 DOM 测试通过；真实 Codex 的视频播放和恢复仍待验证。
 
 ## 发布
 

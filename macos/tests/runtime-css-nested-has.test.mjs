@@ -9,6 +9,9 @@ import { fileURLToPath } from "node:url";
 // pattern ships as silently dead styling — v1.3.1 lost the full-window home
 // and every task-route ambient background this way.
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const selectorContract = JSON.parse(readFileSync(join(root, "tools/selectors.json"), "utf8"));
+const selectorFor = (key) => selectorContract.selectors.find((entry) => entry.key === key).selector;
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const files = [
   "runtime/dream-skin.css",
@@ -74,7 +77,7 @@ for (const file of files) {
     const css = readFileSync(join(root, file), "utf8");
     const selectorToken = file.startsWith("runtime/")
       ? "__DREAM_SELECTOR_SHELL_MAIN__:not\\(:has\\(__DREAM_SELECTOR_HOME_ROUTE_CSS__\\)\\) __DREAM_SELECTOR_MARKDOWN__"
-      : "main:is\\(\\.main-surface, \\[data-app-shell-main-surface\\], \\[class\\*=\"_MainContentSurface_\"\\]\\):not\\(:has\\(\\[role=\"main\"\\]\\)\\) \\[class\\*=\"_markdown\"\\]";
+      : escapeRegExp(`${selectorFor("shell-main")}:not(:has(${selectorFor("home-route-css")})) ${selectorFor("markdown")}`);
     const fullMode = ':is\\([^)]*\\[data-dream-task-mode="full"\\][^)]*\\[data-dream-art-task-mode="full"\\][^)]*\\)\\[data-dream-art-wide="true"\\]';
     const markdownRule = new RegExp(`${fullMode}\\s*\\n?\\s*${selectorToken}\\s*\\{\\s*\\n?\\s*color:\\s*var\\(--ds-text\\)\\s*!important;`);
     const lightShadowRule = new RegExp(`\\[data-dream-shell="light"\\]${fullMode}\\s*\\n?\\s*${selectorToken}\\s*\\{\\s*\\n?\\s*text-shadow:`);
