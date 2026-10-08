@@ -1,0 +1,70 @@
+[data-ds-part="root"] {
+  color: #273b59;
+}
+[data-ds-part="sidebar"] {
+  background-color: rgba(239, 247, 255, 0.82);
+  backdrop-filter: blur(22px) saturate(1.12);
+  border-right-width: 1px;
+  border-right-style: solid;
+  border-right-color: rgba(155, 189, 226, 0.65);
+  box-shadow: 6px 0 26px rgba(51, 78, 130, 0.08);
+  color: #304766;
+}
+[data-ds-part="header"] {
+  background-color: rgba(244, 248, 255, 0.80);
+  backdrop-filter: blur(18px);
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  border-bottom-color: rgba(157, 182, 222, 0.38);
+  color: #38557b;
+}
+[data-ds-part="home-hero"] {
+  border-radius: 28px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(228, 240, 255, 0.82);
+  box-shadow: 0 12px 30px rgba(47, 76, 127, 0.13);
+}
+[data-ds-part="project-list"] {
+  color: #38516f;
+  border-radius: 14px;
+}
+[data-ds-part="message"] {
+  background-color: rgba(247, 250, 255, 0.86);
+  backdrop-filter: blur(12px) saturate(1.06);
+  border-radius: 18px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(190, 209, 238, 0.62);
+  box-shadow: 0 5px 18px rgba(56, 79, 132, 0.07);
+  color: #273b59;
+}
+[data-ds-part="composer"] {
+  background-color: rgba(249, 251, 255, 0.94);
+  backdrop-filter: blur(24px) saturate(1.12);
+  border-radius: 24px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(136, 179, 224, 0.80);
+  box-shadow: 0 12px 30px rgba(58, 87, 146, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  color: #263c5b;
+  transition-property: border-color, box-shadow;
+  transition-duration: 180ms;
+}
+[data-ds-part="composer"]:hover {
+  border-color: rgba(115, 153, 205, 0.96);
+  box-shadow: 0 12px 30px rgba(67, 91, 153, 0.21), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+}
+[data-ds-part="composer-toolbar"] {
+  color: #4d719b;
+}
+[data-ds-part="dialog"] {
+  background-color: rgba(247, 250, 255, 0.97);
+  backdrop-filter: blur(24px);
+  border-radius: 22px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(161, 186, 226, 0.70);
+  box-shadow: 0 16px 40px rgba(42, 67, 115, 0.20);
+  color: #273b59;
+}

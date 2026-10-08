@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "personal-moonlit-glass",
+  "name": "清音 · 月白琉璃",
+  "brandSubtitle": "MOONLIT CODEX · 月白琉璃",
+  "tagline": "月色作笺，让灵感慢慢成形。",
+  "projectPrefix": "选择项目 · ",
+  "projectLabel": "选择项目",
+  "statusText": "月下清音",
+  "quote": "把灵感，写进月光里。",
+  "image": "background.mp4",
+  "appearance": "light",
+  "art": { "focusX": 0.65, "focusY": 0.46, "safeArea": "left", "taskMode": "full" },
+  "media": { "type": "video", "playbackRate": 1, "opacity": 1 },
+  "colors": {
+    "background": "#edf4ff",
+    "panel": "#f7faff",
+    "panelAlt": "#e5edfc",
+    "accent": "#507cae",
+    "accentAlt": "#9fbfe5",
+    "secondary": "#7e88bd",
+    "highlight": "#b798c4",
+    "text": "#273b59",
+    "muted": "#627894",
+    "line": "rgba(132, 165, 210, 0.38)"
+  }
+}
