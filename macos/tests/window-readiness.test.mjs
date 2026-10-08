@@ -62,8 +62,8 @@ assert.equal(assessRendererVerification(baseRenderer, readyNativeWindow, exactPa
 // verification must use it when the stricter home-route selector is late.
 assert.match(
   injectorSource,
-  /const home = document\.querySelector\(\$\{selectorLiteral\("home-route"\)\}\) \?\? homeRoute;/,
-  "Home verification must fall back to the already-resolved semantic home route (#306).",
+  /const home = pick\(\$\{selectorLiteral\("home-route"\)\}, document, true\) \?\? homeRoute;/,
+  "Home verification must prefer a visible home and retain the semantic fallback (#306).",
 );
 assert.equal(
   assessRendererVerification({
