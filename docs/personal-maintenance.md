@@ -34,6 +34,14 @@ powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File windows/app/build-
 
 输出位于 `windows/dist/`。构建、自检与回归不应重启 Codex 或修改官方应用包。
 
+## Wallpaper Engine 场景限制
+
+个人 EXE 包含普通 MP4/WebM 视频播放所需运行时，但不包含 `scene.pkg` 所需的 `SceneViewer.exe`。上游当前仅提供场景通信接口，独立侧车包、对应源码与兼容性验证仍未完成；不能把扫描到场景文件当作已经能播放。
+
+未检测到场景组件时，个人管理器只允许导入视频，显示未能导入的场景数量；已导入的场景保留预览，但禁用应用按钮并说明原因。普通图片和视频继续可用。不要下载任意同名 `SceneViewer.exe`：该组件必须实现上游特定的流协议，仅文件名相同不代表兼容。
+
+当前使用方式：在 Wallpaper Engine 中订阅并下载“视频”类型壁纸，然后从管理器的 Wallpaper Engine 入口导入；或直接用“添加壁纸”选本地 `.mp4` / `.webm`。场景动态播放尚未交付。
+
 ## 每次 Codex 更新后的检查
 
 1. 分别记录应用显示版本和 Windows Store 包版本，两者可能不同。

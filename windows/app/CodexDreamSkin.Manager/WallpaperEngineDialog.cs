@@ -69,7 +69,9 @@ internal sealed class WallpaperEngineDialog : Form
     var hint = new Label
     {
       Dock = DockStyle.Fill,
-      Text = "视频和 Scene 场景各显示一次；Scene 由独立本地渲染侧车播放，Web 暂不支持。",
+      Text = _service.CanApplyWallpaper(WallpaperKind.Scene)
+        ? "视频可直接使用；Scene 场景为开发预览，具体兼容性需验证。Web 暂不支持。"
+        : "当前可导入视频壁纸；未安装场景播放组件，Scene 场景暂不可用。",
       ForeColor = TextMuted,
       AutoEllipsis = true,
       TextAlign = ContentAlignment.MiddleLeft,
@@ -135,7 +137,7 @@ internal sealed class WallpaperEngineDialog : Form
       try
       {
         _items.Items.Clear();
-        foreach (var item in items)
+        foreach (var item in items.Where(item => _service.CanApplyWallpaper(item.Kind)))
         {
           _items.Items.Add(item);
         }
@@ -144,9 +146,12 @@ internal sealed class WallpaperEngineDialog : Form
       {
         _items.EndUpdate();
       }
-      _statusLabel.Text = items.Count == 0
-        ? "未找到兼容的视频或 Scene 场景。请先在 Wallpaper Engine 中完成订阅和下载。"
-        : $"找到 {items.Count} 个兼容壁纸；每个 Workshop 项目仅显示一次。";
+      var unavailableCount = items.Count - _items.Items.Count;
+      _statusLabel.Text = unavailableCount > 0
+        ? $"可导入 {_items.Items.Count} 个；另有 {unavailableCount} 个场景缺少播放组件。请选视频类壁纸。"
+        : _items.Items.Count == 0
+          ? "未找到可导入壁纸。请先在 Wallpaper Engine 中完成视频壁纸订阅和下载。"
+          : $"找到 {_items.Items.Count} 个可导入壁纸；每个 Workshop 项目仅显示一次。";
     }
     catch (OperationCanceledException)
     {
@@ -170,6 +175,11 @@ internal sealed class WallpaperEngineDialog : Form
     var selected = _items.SelectedItems.Cast<WallpaperEngineItem>().ToArray();
     if (selected.Length == 0)
     {
+      return;
+    }
+    if (selected.Any(item => !_service.CanApplyWallpaper(item.Kind)))
+    {
+      ShowError(new InvalidOperationException(SceneStreamHost.UnavailableMessage));
       return;
     }
     ImportedItems = selected;

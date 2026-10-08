@@ -16,9 +16,17 @@ internal sealed class SceneStreamHost : IDisposable
     _runtime = runtime;
   }
 
+  internal const string UnavailableMessage =
+    "此版本未附带 Wallpaper Engine 场景播放组件，暂时不能播放 scene.pkg。" +
+    "请选择视频类壁纸，或通过“添加壁纸”导入 MP4 / WebM 文件。";
+
+  public bool IsAvailable => FindViewerPath() is not null;
+
   public async Task<string> StartAsync(string scenePath, CancellationToken cancellationToken)
   {
     ObjectDisposedException.ThrowIf(_disposed, this);
+    var viewerPath = FindViewerPath()
+      ?? throw new InvalidOperationException(UnavailableMessage);
     await StopAsync();
 
     var fullScenePath = Path.GetFullPath(scenePath);
@@ -52,7 +60,6 @@ internal sealed class SceneStreamHost : IDisposable
       throw new InvalidOperationException("未找到 Wallpaper Engine assets 目录，请确认 Wallpaper Engine 已安装。");
     }
 
-    var viewerPath = ResolveViewerPath();
     var streamDirectory = Path.Combine(_runtime.StateRoot, "scene-stream");
     Directory.CreateDirectory(streamDirectory);
     CleanupStaleStreamFiles(streamDirectory);
@@ -195,7 +202,7 @@ internal sealed class SceneStreamHost : IDisposable
     DisposeProcessImmediately();
   }
 
-  private string ResolveViewerPath()
+  private string? FindViewerPath()
   {
     var configured = Environment.GetEnvironmentVariable("CODEX_DREAM_SKIN_SCENE_VIEWER");
     var candidates = new[]
@@ -204,13 +211,20 @@ internal sealed class SceneStreamHost : IDisposable
       Path.Combine(_runtime.StateRoot, "scene-runtime", "SceneViewer.exe"),
       Path.Combine(AppContext.BaseDirectory, "scene-runtime", "SceneViewer.exe"),
     };
-    var viewerPath = candidates.FirstOrDefault(path =>
-      path is not null && !string.IsNullOrWhiteSpace(path) && File.Exists(Path.GetFullPath(path)));
-    return viewerPath is null
-      ? throw new InvalidOperationException(
-        "未安装场景渲染侧车。请将 SceneViewer.exe 放到 " +
-        Path.Combine(_runtime.StateRoot, "scene-runtime") + "。")
-      : Path.GetFullPath(viewerPath);
+    foreach (var candidate in candidates)
+    {
+      if (string.IsNullOrWhiteSpace(candidate)) continue;
+      try
+      {
+        var path = Path.GetFullPath(candidate);
+        if (File.Exists(path)) return path;
+      }
+      catch (ArgumentException) { }
+      catch (NotSupportedException) { }
+      catch (IOException) { }
+      catch (UnauthorizedAccessException) { }
+    }
+    return null;
   }
 
   private static async Task DrainAsync(TextReader reader)

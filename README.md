@@ -2,6 +2,8 @@
 
 > 个人 Windows 维护分支，保留上游历史。适配目标：Codex 26.1002.52244；当前验证状态与维护方式见 [个人维护说明](docs/personal-maintenance.md)。个人构建从 [Actions](https://github.com/LovelyCates/Codex-Dynamic-Skin/actions) 获取。下方保留上游介绍，其中原项目下载链接不代表个人版产物。
 
+> 本个人构建支持图片和 MP4/WebM 视频；Wallpaper Engine 的 `scene.pkg` 需要上游尚未提供完整配套包的场景组件，当前不能开箱即用。缺少组件时管理器会明确提示并禁用场景应用。
+
 <p align="center">
   <strong>给 Codex 桌面端换上主题、静态壁纸和动态壁纸。</strong><br>
   保留原生侧栏、任务、项目选择器与输入框，不修改官方安装包。

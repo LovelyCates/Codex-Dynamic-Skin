@@ -627,8 +627,12 @@ internal sealed class MainForm : Form
     card.BackColor = Color.FromArgb(67, 43, 52);
     _selectionTitle.Text = item.Name;
     _selectionMeta.Text = $"{item.SourceLabel} · {item.Extension} · {item.SizeLabel}";
-    _applyButton.Enabled = !_busy;
+    UpdateApplyButton();
     ShowPreview(item);
+    if (!_service.CanApplyWallpaper(item.Kind))
+    {
+      ShowMessage(SceneStreamHost.UnavailableMessage, false);
+    }
   }
 
   private void ShowPreview(WallpaperItem item)
@@ -672,6 +676,12 @@ internal sealed class MainForm : Form
   {
     if (_selectedWallpaper is null)
     {
+      return;
+    }
+    if (!_service.CanApplyWallpaper(_selectedWallpaper.Kind))
+    {
+      ShowMessage(SceneStreamHost.UnavailableMessage, false);
+      UpdateApplyButton();
       return;
     }
     await RunOperationAsync(
@@ -952,10 +962,20 @@ internal sealed class MainForm : Form
     _restoreButton.Enabled = !busy;
     _themesButton.Enabled = !busy;
     _wallpaperEngineButton.Enabled = !busy;
-    _applyButton.Enabled = !busy && _selectedWallpaper is not null;
+    UpdateApplyButton();
     _revealSlider.Enabled = !busy;
     _searchBox.Enabled = !busy;
     UseWaitCursor = busy;
+  }
+
+  private void UpdateApplyButton()
+  {
+    var available = _selectedWallpaper is not null &&
+      _service.CanApplyWallpaper(_selectedWallpaper.Kind);
+    _applyButton.Enabled = !_busy && available;
+    _applyButton.Text = _selectedWallpaper?.Kind == WallpaperKind.Scene && !available
+      ? "场景组件未安装"
+      : "应用到 Codex";
   }
 
   private void ShowMessage(string message, bool error)

@@ -18,6 +18,9 @@ internal sealed class DreamSkinService : IDisposable
 
   public Func<string, bool>? ConfirmCodexRestart { get; set; }
 
+  public bool CanApplyWallpaper(WallpaperKind kind) =>
+    kind != WallpaperKind.Scene || _sceneStream.IsAvailable;
+
   public async Task StartAsync(CancellationToken cancellationToken = default)
   {
     var arguments = new List<string> { "-Port", "9335" };
@@ -72,7 +75,6 @@ internal sealed class DreamSkinService : IDisposable
   public async Task<IReadOnlyList<WallpaperEngineItem>> ListWallpaperEngineAsync(
     CancellationToken cancellationToken = default)
   {
-    await _sceneStream.StopAsync();
     var result = await RunManagerCommandAsync(
       new[] { "-Action", "ListWallpaperEngine" },
       cancellationToken);
